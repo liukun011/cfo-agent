@@ -24,8 +24,9 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
   const { state, dispatch } = useAppStore()
   const [page, setPage] = useState('dashboard')
   const [selectedEnterprise, setSelectedEnterprise] = useState(null)
-  const [newQuestion, setNewQuestion] = useState('')
+  const [newQuestion, setNewQuestion] = useState({ questionName: '', description: '' })
   const [editingQuestionId, setEditingQuestionId] = useState('')
+  const [editingQuestionName, setEditingQuestionName] = useState('')
   const [editingQuestionText, setEditingQuestionText] = useState('')
   const [editingQuestionSort, setEditingQuestionSort] = useState('')
   const [questionSubmittingId, setQuestionSubmittingId] = useState('')
@@ -111,17 +112,21 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
   }, [loadQuestions, page])
 
   const handleAddQuestion = async () => {
-    if (!newQuestion.trim()) return
+    const questionName = String(newQuestion.questionName || '').trim()
+    const description = String(newQuestion.description || '').trim()
+    if (!questionName || !description) {
+      showToast('请填写字段名称和问题描述', 'error')
+      return
+    }
     try {
       const latestSort = getLatestQuestionSort(state.questions)
-      const displayIndex = (state.questions || []).length + 1
       const payload = {
-        questionName: `问题 ${displayIndex}`,
-        description: newQuestion.trim(),
+        questionName,
+        description,
         sortOrder: latestSort,
       }
       await saveQuestion(payload)
-      setNewQuestion('')
+      setNewQuestion({ questionName: '', description: '' })
       await loadQuestions()
       showToast('已添加')
     } catch (e) {
@@ -131,20 +136,27 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
 
   const handleStartEditQuestion = useCallback((question) => {
     setEditingQuestionId(question.id)
+    setEditingQuestionName(question.questionName || question.name || question.title || '')
     setEditingQuestionText(question.text || '')
     setEditingQuestionSort(String(question.sortOrder ?? question.sort ?? ''))
   }, [])
 
   const handleCancelEditQuestion = useCallback(() => {
     setEditingQuestionId('')
+    setEditingQuestionName('')
     setEditingQuestionText('')
     setEditingQuestionSort('')
   }, [])
 
   const handleSaveQuestionEdit = async (question) => {
+    const questionName = editingQuestionName.trim()
     const description = editingQuestionText.trim()
     const sortOrder = Number(editingQuestionSort)
-    if (!question?.id || !description) return
+    if (!question?.id) return
+    if (!questionName || !description) {
+      showToast('请填写字段名称和问题描述', 'error')
+      return
+    }
     if (!Number.isFinite(sortOrder)) {
       showToast('请输入有效排序值', 'error')
       return
@@ -155,7 +167,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
     }
     try {
       setQuestionSubmittingId(question.id)
-      const updatedQuestion = { ...question, description, text: description }
+      const updatedQuestion = { ...question, questionName, name: questionName, title: questionName, label: questionName, description, text: description }
       const orderedQuestions = reorderQuestionToIndex(
         (state.questions || []).map(item => item.id === question.id ? updatedQuestion : item),
         question.id,
@@ -163,6 +175,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
       )
       await persistQuestionOrder(orderedQuestions)
       setEditingQuestionId('')
+      setEditingQuestionName('')
       setEditingQuestionText('')
       setEditingQuestionSort('')
       await loadQuestions()
@@ -182,6 +195,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
       await deleteQuestion(question.id)
       if (editingQuestionId === question.id) {
         setEditingQuestionId('')
+        setEditingQuestionName('')
         setEditingQuestionText('')
         setEditingQuestionSort('')
       }
@@ -196,7 +210,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
 
   const buildQuestionUpdatePayload = (question, sortOrder = question?.sortOrder ?? question?.sort ?? 0) => ({
     id: question.id,
-    questionName: question.questionName || question.title || `问题 ${question.sort || ''}`.trim(),
+    questionName: question.questionName || question.name || question.title || `问题 ${question.sort || ''}`.trim(),
     questionType: question.questionType || '',
     sortOrder,
     description: question.description || question.text || '',
@@ -301,11 +315,13 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
             onRefresh={loadQuestions}
             onAddQuestion={handleAddQuestion}
             editingQuestionId={editingQuestionId}
+            editingQuestionName={editingQuestionName}
             editingQuestionText={editingQuestionText}
             editingQuestionSort={editingQuestionSort}
             questionSubmittingId={questionSubmittingId}
             onStartEditQuestion={handleStartEditQuestion}
             onCancelEditQuestion={handleCancelEditQuestion}
+            onEditingQuestionNameChange={setEditingQuestionName}
             onEditingQuestionTextChange={setEditingQuestionText}
             onEditingQuestionSortChange={setEditingQuestionSort}
             onSaveQuestionEdit={handleSaveQuestionEdit}

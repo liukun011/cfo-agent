@@ -59,17 +59,21 @@ export function mapEnterpriseVO(item) {
 
 export function mapQuestionVO(item) {
   const rawSortOrder = Number(item.sortOrder ?? item.sort ?? 0)
+  const questionName = String(item.questionName || item.name || item.title || '').trim()
+  const description = String(item.description || item.text || '').trim()
   return {
     id: String(item.id || ''),
-    text: item.description || item.text || item.questionName || '',
-    title: item.questionName || '',
-    questionName: item.questionName || '',
+    name: questionName,
+    label: questionName,
+    text: description,
+    title: questionName,
+    questionName,
     questionType: item.questionType || '',
-    description: item.description || '',
+    description,
     sortOrder: rawSortOrder,
     sort: rawSortOrder,
     rawSortOrder,
-    note: item.questionType || item.note || item.questionName || '',
+    note: questionName,
     deleted: Boolean(item.deleteFlag),
   }
 }

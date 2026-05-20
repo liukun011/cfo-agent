@@ -7,6 +7,7 @@ export default function QuestionBankPage({
   questions,
   newQuestion,
   editingQuestionId,
+  editingQuestionName,
   editingQuestionText,
   editingQuestionSort,
   questionSubmittingId,
@@ -15,6 +16,7 @@ export default function QuestionBankPage({
   onAddQuestion,
   onStartEditQuestion,
   onCancelEditQuestion,
+  onEditingQuestionNameChange,
   onEditingQuestionTextChange,
   onEditingQuestionSortChange,
   onSaveQuestionEdit,
@@ -39,9 +41,33 @@ export default function QuestionBankPage({
         </div>
       )}
       <div className="question-add mb-16">
-        <textarea className="form-textarea" placeholder="输入新问题文案..." value={newQuestion} onChange={(e) => onNewQuestionChange(e.target.value)} rows={2} />
+        <label className="question-add-field">
+          <span>字段名称 *</span>
+          <input
+            className="form-input"
+            placeholder="例如：融资用途"
+            value={newQuestion.questionName || ''}
+            onChange={(e) => onNewQuestionChange({ ...newQuestion, questionName: e.target.value })}
+          />
+        </label>
+        <label className="question-add-field">
+          <span>问题描述 *</span>
+          <textarea
+            className="form-textarea"
+            placeholder="例如：请说明本次融资主要用途？"
+            value={newQuestion.description || ''}
+            onChange={(e) => onNewQuestionChange({ ...newQuestion, description: e.target.value })}
+            rows={2}
+          />
+        </label>
         <p className="question-add-hint">新增后将追加到题库末尾，可用上下移动调整顺序。</p>
-        <button className="btn-primary btn-sm mt-8" onClick={onAddQuestion} disabled={!newQuestion.trim() || questionStatus === 'loading'}>{Icons.plus} 新增问题</button>
+        <button
+          className="btn-primary btn-sm mt-8"
+          onClick={onAddQuestion}
+          disabled={!String(newQuestion.questionName || '').trim() || !String(newQuestion.description || '').trim() || questionStatus === 'loading'}
+        >
+          {Icons.plus} 新增问题
+        </button>
       </div>
       {!questionError && questionStatus !== 'loading' && questions.length === 0 ? (
         <div className="empty-panel">
@@ -62,7 +88,7 @@ export default function QuestionBankPage({
                       <button
                         className="btn-primary btn-sm"
                         onClick={() => onSaveQuestionEdit(q)}
-                        disabled={questionSubmittingId === q.id || !editingQuestionText.trim()}
+                        disabled={questionSubmittingId === q.id || !editingQuestionName.trim() || !editingQuestionText.trim()}
                       >
                         {questionSubmittingId === q.id ? '保存中...' : '保存'}
                       </button>
@@ -81,6 +107,16 @@ export default function QuestionBankPage({
               </div>
               {editingQuestionId === q.id ? (
                 <div className="question-edit-panel">
+                  <label className="question-name-field">
+                    <span>字段名称 *</span>
+                    <input
+                      className="form-input"
+                      value={editingQuestionName}
+                      onChange={(e) => onEditingQuestionNameChange(e.target.value)}
+                      placeholder="输入字段名称..."
+                      disabled={questionSubmittingId === q.id}
+                    />
+                  </label>
                   <label className="question-sort-field">
                     <span>排序</span>
                     <input
@@ -94,19 +130,25 @@ export default function QuestionBankPage({
                       disabled={questionSubmittingId === q.id}
                     />
                   </label>
-                  <textarea
-                    className="form-textarea question-edit-input"
-                    value={editingQuestionText}
-                    onChange={(e) => onEditingQuestionTextChange(e.target.value)}
-                    rows={3}
-                    placeholder="输入问题文案..."
-                    disabled={questionSubmittingId === q.id}
-                  />
+                  <label className="question-description-field">
+                    <span>问题描述 *</span>
+                    <textarea
+                      className="form-textarea question-edit-input"
+                      value={editingQuestionText}
+                      onChange={(e) => onEditingQuestionTextChange(e.target.value)}
+                      rows={3}
+                      placeholder="输入问题描述..."
+                      disabled={questionSubmittingId === q.id}
+                    />
+                  </label>
                 </div>
               ) : (
-                <p className="question-text">{q.text}</p>
+                <div className="question-display">
+                  <div className="question-name-display">{formatDisplayValue(q.questionName || q.name || q.title)}</div>
+                  <p className="question-text">{q.text}</p>
+                </div>
               )}
-              <span className="question-note">排序 {q.sortOrder ?? q.sort ?? 0} · {formatDisplayValue(q.note)}</span>
+              <span className="question-note">排序 {q.sortOrder ?? q.sort ?? 0}</span>
             </div>
           ))}
         </div>

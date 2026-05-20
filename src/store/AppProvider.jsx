@@ -144,7 +144,7 @@ export function appReducer(state, action) {
       const records = Array.isArray(action.payload?.records) ? action.payload.records : action.payload || []
       const questions = records
         .map(mapQuestionVO)
-        .filter(q => q.id && q.text)
+        .filter(q => q.id && q.questionName && q.text)
         .sort((a, b) => Number(a.rawSortOrder ?? a.sort ?? 0) - Number(b.rawSortOrder ?? b.sort ?? 0))
         .map((question, index) => ({
           ...question,

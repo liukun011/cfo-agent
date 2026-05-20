@@ -179,8 +179,8 @@ function normalizeQuestions(page = {}) {
     .sort((a, b) => Number(a.sortOrder || a.sort || 0) - Number(b.sortOrder || b.sort || 0))
     .map(item => ({
       id: String(item.id || item.questionId || ''),
-      label: item.questionName || item.title || item.label || item.description || '未命名问题',
-      description: item.description || item.questionText || '',
+      label: String(item.questionName || item.name || '').trim(),
+      description: String(item.description || item.questionText || '').trim(),
     }))
-    .filter(item => item.id)
+    .filter(item => item.id && item.label)
 }
