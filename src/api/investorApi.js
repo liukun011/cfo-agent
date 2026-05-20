@@ -1,0 +1,17 @@
+export {
+  associateInvestorByInvitation,
+  createInvestor,
+  deleteInvestorCategory,
+  fetchInvestorCategoryById,
+  fetchInvestorCategoryChildren,
+  fetchInvestorDetail,
+  fetchInvestorForm,
+  fetchInvestorList,
+  fetchInvestorListByCreateUser,
+  fetchInvestorTopCategories,
+  saveInvestorCategory,
+  submitInvestorForm,
+  syncInvestorFields,
+  updateInvestor,
+  updateInvestorCategory,
+} from './client'

@@ -1,0 +1,19 @@
+/* Shared layout, buttons, cards, badges, and expand controls live here for new styles. */
+
+.btn-danger {
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-weight: 850;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .btn-danger {
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(127, 29, 29, 0.32);
+  color: #fca5a5;
+}

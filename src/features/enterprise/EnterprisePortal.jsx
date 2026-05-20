@@ -1,0 +1,651 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAppStore } from '../../store'
+import { updateContactViewStatus } from '../../api'
+import { CONTACT_VIEW_STATUS, STATUS_COLORS } from '../../config/appConfig'
+import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveEnterprise, startEnterpriseAnalysis, updateEnterpriseAfterChat, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
+import { loadEnterprisePortalData } from '../../services/portalLoaders'
+import {
+  buildEnterprisePayload,
+  buildEnterpriseLeadPayload,
+  buildSummaryText,
+  getChatAnswers,
+} from './enterpriseFlow'
+import {
+  buildEnterpriseFields,
+  getCoreEnterpriseFields,
+  getEnterpriseProducts,
+  getExtraEnterpriseFields,
+  hasValue,
+} from './utils/enterpriseFields'
+import { Icons } from '../../shared/components/Icons'
+import Topbar from '../../shared/components/Topbar'
+import Toast from '../../shared/components/Toast'
+import {
+  ChatDialog,
+  CollectedHomeHero,
+  EnterpriseLeadForm,
+  EnterpriseInfoSection,
+  GenerationStatus,
+  IdleHomeHero,
+  ProductMatchList,
+} from './components'
+
+const REINITIABLE_CONTACT_STATUSES = new Set(['未发起', '待审核', '暂不推送', '暂不接收'])
+
+function canInitiateContact(investor) {
+  return REINITIABLE_CONTACT_STATUSES.has(investor?.status || '未发起')
+}
+
+function getInitiateContactLabel(investor) {
+  return investor?.status === '未发起' || investor?.status === '待审核' || !investor?.status ? '发起对接' : '重新发起对接'
+}
+
+function getInvestorStatusText(status) {
+  if (status === '待审核' || status === '待确认') return '待资金方确认'
+  if (status === '已推送' || status === '已确认') return '已确认'
+  if (status === '暂不推送' || status === '暂不接收') return '暂不推送'
+  return status || '未发起'
+}
+
+function getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan }) {
+  if (isSupplementChecking) return 'checking'
+  if (isPlanGenerating) return 'generating'
+  if (hasGeneratedPlan) return 'generated'
+  if (canGeneratePlan) return 'ready'
+  return 'idle'
+}
+
+function getGenerationActionCopy(nextActionState, hasMissingFields) {
+  const copyMap = {
+    checking: {
+      title: '正在检查资料完整度',
+      desc: '正在整理企业资料。',
+      label: '检测中',
+      className: 'generation-action-running',
+    },
+    ready: {
+      title: '可生成融资方案',
+      desc: '确认资料无误后，点击生成融资方案。',
+      label: '可生成',
+      className: 'generation-action-ready',
+    },
+    generating: {
+      title: '融资方案生成中',
+      desc: '正在生成方案，请稍候。',
+      label: '生成中',
+      className: 'generation-action-running',
+    },
+    generated: {
+      title: '融资方案已生成',
+      desc: '可查看融资方案和匹配机构，并选择发起对接。',
+      label: '已生成',
+      className: 'generation-action-done',
+    },
+    idle: {
+      title: '等待生成融资方案',
+      desc: '完成采集后即可生成融资方案。',
+      label: '待生成',
+      className: '',
+    },
+  }
+  return copyMap[nextActionState] || copyMap.idle
+}
+
+export default function EnterprisePortal({ onLogout, theme, setTheme }) {
+  const { state, dispatch } = useAppStore()
+  const [phase, setPhase] = useState('idle')
+  const [chatStep, setChatStep] = useState(0)
+  const [chatLog, setChatLog] = useState([])
+  const [inputText, setInputText] = useState('')
+  const [isAnswering, setIsAnswering] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [enterprise, setEnterprise] = useState(null)
+  const products = enterprise ? getEnterpriseProducts(state.enterpriseProducts, enterprise.id) : []
+  const analysisTaskStatus = String(enterprise?.analysisTaskStatus || '').toUpperCase()
+  const importTaskStatus = String(enterprise?.importTaskStatus || '').toUpperCase()
+  const hasProducts = products.length > 0
+  const hasGeneratedPlan = analysisTaskStatus === 'SUCCESS' || hasProducts
+  const isRemotePlanRunning = analysisTaskStatus === 'RUNNING' && !hasProducts
+  const enterpriseFields = enterprise ? buildEnterpriseFields(enterprise) : []
+  const questions = state.questions
+  const [expandedProduct, setExpandedProduct] = useState(null)
+  const [showMatching, setShowMatching] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
+  const [showFullEnterpriseInfo, setShowFullEnterpriseInfo] = useState(false)
+  const [expandedEnterpriseText, setExpandedEnterpriseText] = useState({})
+  const [expandedInvestorReasons, setExpandedInvestorReasons] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isCheckingSupplement, setIsCheckingSupplement] = useState(false)
+  const [generationPhase, setGenerationPhase] = useState('idle')
+  const [generationMessage, setGenerationMessage] = useState('')
+  const [analysisPolling, setAnalysisPolling] = useState(null)
+  const [contactSubmittingKey, setContactSubmittingKey] = useState('')
+  const isSupplementChecking = isCheckingSupplement || importTaskStatus === 'RUNNING'
+  const isBusy = isSubmitting || isGenerating || isSupplementChecking || isRemotePlanRunning
+  const missingFields = enterprise?.missingFields || []
+  const hasMissingFields = missingFields.length > 0
+  const coreEnterpriseFields = getCoreEnterpriseFields(enterpriseFields)
+  const extraEnterpriseFields = getExtraEnterpriseFields(enterpriseFields)
+  const canGeneratePlan = enterprise && !isSupplementChecking && !isRemotePlanRunning
+  const isPlanGenerating = isRemotePlanRunning || isGenerating || Boolean(analysisPolling) || ['submitting', 'polling', 'background'].includes(generationPhase)
+  const canShowMatching = showMatching && (hasGeneratedPlan || hasProducts)
+  const nextActionState = getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan })
+  const generationAction = getGenerationActionCopy(nextActionState, hasMissingFields)
+  const planStepClass = isPlanGenerating ? 'active' : hasGeneratedPlan ? 'done' : canGeneratePlan ? 'active' : ''
+  const planStepLabel = isPlanGenerating ? '生成中' : hasGeneratedPlan ? '方案完成' : '生成方案'
+  const [toast, setToast] = useState(null)
+  const chatEndRef = useRef(null)
+  const chatInputRef = useRef(null)
+  const generationSectionRef = useRef(null)
+  const hasLoadedApiRef = useRef(false)
+  const answerLockRef = useRef(false)
+  const matchingCollapsedRef = useRef(false)
+  const showToast = useCallback((msg, type) => setToast({ message: msg, type }), [])
+  const closeToast = useCallback(() => setToast(null), [])
+
+  useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }) }, [chatLog])
+
+  useEffect(() => {
+    if (phase === 'chatting' && chatStep > 0 && chatStep <= questions.length && !isAnswering) {
+      requestAnimationFrame(() => chatInputRef.current?.focus())
+    }
+  }, [phase, chatStep, questions.length, isAnswering])
+
+  useEffect(() => {
+    if (hasLoadedApiRef.current) return
+    hasLoadedApiRef.current = true
+
+    loadEnterprisePortalData(dispatch, {
+      selectLatestEnterprise: latest => {
+        setEnterprise(latest)
+        setPhase('collected')
+      },
+    }).catch(e => {
+      console.log('企业端接口加载失败', e.message)
+      showToast('企业数据加载失败，请稍后重试', 'error')
+    })
+  }, [dispatch, showToast])
+
+  useEffect(() => {
+    if ((hasGeneratedPlan || hasProducts) && !showMatching && !matchingCollapsedRef.current) {
+      setShowMatching(true)
+      setShowSummary(false)
+    }
+  }, [hasGeneratedPlan, hasProducts, hasMissingFields, showMatching])
+
+  useEffect(() => {
+    matchingCollapsedRef.current = false
+    setShowFullEnterpriseInfo(false)
+    setExpandedEnterpriseText({})
+    setExpandedInvestorReasons({})
+    setExpandedProduct(null)
+    setShowSummary(false)
+  }, [enterprise?.id])
+
+  useEffect(() => {
+    if (!enterprise?.id || analysisTaskStatus !== 'RUNNING' || analysisPolling) return
+    setGenerationPhase('polling')
+    setGenerationMessage('融资方案生成中，请稍候。')
+    setAnalysisPolling({ enterpriseId: enterprise.id, taskId: '' })
+  }, [enterprise?.id, analysisTaskStatus, analysisPolling])
+
+  useEffect(() => {
+    if (!enterprise?.id || importTaskStatus !== 'RUNNING') return undefined
+    let cancelled = false
+    const timer = window.setInterval(async () => {
+      try {
+        const detail = await refreshEnterpriseDetail(enterprise.id, dispatch)
+        if (cancelled) return
+        setEnterprise(detail)
+        if (String(detail.importTaskStatus || '').toUpperCase() !== 'RUNNING') {
+          window.clearInterval(timer)
+          setIsCheckingSupplement(false)
+        }
+      } catch {
+        // 单次同步失败不影响后续轮询。
+      }
+    }, 2500)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [enterprise?.id, importTaskStatus, dispatch])
+
+  useEffect(() => {
+    if (!analysisPolling) return undefined
+    let cancelled = false
+    let attempts = 0
+
+    const pollAnalysis = async () => {
+      attempts += 1
+      setGenerationPhase(attempts > 8 ? 'background' : 'polling')
+      setGenerationMessage(attempts > 8 ? '生成时间较长，可稍后刷新查看。' : '正在刷新生成进度...')
+      try {
+        const { taskStatus, analysis } = await refreshEnterpriseAnalysis(
+          analysisPolling.enterpriseId,
+          analysisPolling.taskId,
+          dispatch,
+          { resultSource: analysisPolling.resultSource || 'stored' },
+        )
+        if (cancelled) return
+        if (analysis) {
+          setGenerationPhase('ready')
+          setGenerationMessage('融资方案已生成。')
+          setAnalysisPolling(null)
+          setIsGenerating(false)
+          setEnterprise(prev => prev ? { ...prev, analysisTaskStatus: 'SUCCESS' } : prev)
+          setShowMatching(true)
+          setShowSummary(false)
+          showToast('融资方案已生成', 'success')
+          return
+        }
+        if (taskStatus === 'FAILED') {
+          setGenerationPhase('failed')
+          setGenerationMessage('方案生成失败，请稍后重试。')
+          setAnalysisPolling(null)
+          setIsGenerating(false)
+        }
+      } catch (e) {
+        if (attempts > 3) {
+          setGenerationMessage('进度刷新暂时不稳定，可稍后手动刷新。')
+        }
+      }
+    }
+
+    pollAnalysis()
+    const timer = window.setInterval(pollAnalysis, 3000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [analysisPolling, dispatch, showToast])
+
+  const openLeadForm = () => {
+    if (isBusy) return
+    setPhase('leadForm')
+  }
+
+  const beginChat = useCallback(() => {
+    if (isBusy) return
+    if (questions.length === 0) {
+      showToast('对话题库还没有加载到，请稍后再试', 'error')
+      return
+    }
+    setPhase('chatting')
+    setChatLog([
+      { role: 'agent', text: `您好！我是 CFO-Agent，将协助您完成融资需求采集。请回答以下 ${questions.length} 个问题，我将为您匹配合适的融资方案。` },
+      { role: 'agent', text: `问题 1/${questions.length}：${questions[0].text}` },
+    ])
+    setChatStep(1)
+    setInputText('')
+    setIsAnswering(false)
+    answerLockRef.current = false
+  }, [isBusy, questions, showToast])
+
+  const handleLeadSubmit = async values => {
+    if (isSubmitting) return
+    if (questions.length === 0) {
+      showToast('对话题库还没有加载到，请稍后再试', 'error')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      const savedEnterprise = await saveEnterprise(buildEnterpriseLeadPayload(values), dispatch)
+      setEnterprise(savedEnterprise)
+      beginChat()
+    } catch (e) {
+      console.log('企业基础信息保存失败', e)
+      showToast('基础信息保存失败，请稍后重试', 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const askNextQuestion = useCallback((step) => {
+    if (step >= questions.length) { setChatLog(prev => [...prev, { role: 'agent', text: '感谢您的回答！已完成融资需求采集，请保存并查看结果。' }]); setChatStep(questions.length + 1); return }
+    setChatLog(prev => [...prev, { role: 'agent', text: `问题 ${step + 1}/${questions.length}：${questions[step].text}` }])
+    setChatStep(step + 1)
+  }, [questions])
+
+  const sendMessage = () => {
+    if (answerLockRef.current || !inputText.trim() || chatStep > questions.length) return
+    answerLockRef.current = true
+    setIsAnswering(true)
+    const text = inputText.trim()
+    const currentStep = chatStep
+    setInputText('')
+    setChatLog(prev => [...prev, { role: 'user', text }])
+    setTimeout(() => {
+      if (currentStep === questions.length) { setChatLog(prev => [...prev, { role: 'agent', text: '感谢您的回答！已完成融资需求采集，请保存并查看结果。' }]); setChatStep(questions.length + 1) }
+      else askNextQuestion(currentStep)
+      answerLockRef.current = false
+      setIsAnswering(false)
+      requestAnimationFrame(() => chatInputRef.current?.focus())
+    }, 800)
+  }
+
+  const finishChat = async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    if (!enterprise?.id) {
+      showToast('请先保存基础信息', 'error')
+      setPhase('leadForm')
+      setIsSubmitting(false)
+      return
+    }
+    const payload = buildEnterprisePayload(questions, getChatAnswers(chatLog), enterprise)
+    try {
+      const savedEnterprise = await updateEnterpriseAfterChat(enterprise, payload, dispatch)
+      setEnterprise(savedEnterprise)
+      setPhase('collected')
+      setShowMatching(false)
+      setShowSummary(false)
+      setIsCheckingSupplement(true)
+      showToast('采集结果已保存，正在整理企业资料', 'success')
+
+      const detectedEnterprise = await waitForEnterpriseDetection(savedEnterprise.id, dispatch)
+      if (detectedEnterprise) {
+        setEnterprise(detectedEnterprise)
+        if ((detectedEnterprise.missingFields || []).length === 0) {
+          showToast('资料检测完成，可生成融资方案', 'success')
+        }
+      }
+    } catch (e) {
+      console.log('融资方接口调用失败', e)
+      showToast('采集结果保存失败，请稍后重试', 'error')
+    } finally {
+      setIsCheckingSupplement(false)
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { showToast('您的浏览器不支持语音识别', 'error'); return }
+    setIsListening(true)
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    const r = new SR()
+    r.lang = 'zh-CN'
+    r.onresult = (e) => { setInputText(prev => prev + e.results[0][0].transcript); setIsListening(false) }
+    r.onerror = () => { setIsListening(false); showToast('语音识别失败', 'error') }
+    r.onend = () => setIsListening(false)
+    r.start()
+  }
+
+  const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!isAnswering) sendMessage() } }
+
+  const handleInitiateContact = async (productId, investorId) => {
+    const contactKey = `${productId}-${investorId}`
+    if (contactSubmittingKey === contactKey) return
+    const product = products?.find(p => p.id === productId)
+    const investor = product?.matchedInvestors.find(i => i.id === investorId)
+    const matchId = investor?.matchId || investor?.raw?.id
+    const investorIdCode = investor?.investorIdCode || investor?.id
+    if (!matchId || !investorIdCode) {
+      showToast('缺少匹配记录 ID 或资金方编码，暂不能发起对接', 'error')
+      return
+    }
+    try {
+      setContactSubmittingKey(contactKey)
+      await updateContactViewStatus({
+        id: matchId,
+        investorIdCode,
+        contactViewStatus: CONTACT_VIEW_STATUS.PENDING_INVESTOR_CONFIRM,
+      })
+      dispatch({ type: 'INITIATE_CONTACT', payload: { enterpriseId: enterprise.id, productId, investorId } })
+      showToast(`已向 ${investor?.name || '资金方'} 发起对接，等待资金方确认`, 'success')
+    } catch (e) {
+      showToast(`对接申请失败：${e.message}`, 'error')
+    } finally {
+      setContactSubmittingKey('')
+    }
+  }
+
+  const getSummaryText = () => buildSummaryText(enterprise, products)
+
+  const handleGenerateAnalysis = async () => {
+    if (!enterprise || isGenerating || !canGeneratePlan) return
+    matchingCollapsedRef.current = false
+    setIsGenerating(true)
+    setShowMatching(true)
+    setShowSummary(false)
+    setExpandedProduct(null)
+    setGenerationPhase('submitting')
+    setGenerationMessage('正在生成融资方案...')
+    try {
+      const targetEnterprise = enterprise
+      dispatch({ type: 'CLEAR_ENTERPRISE_PRODUCTS', payload: targetEnterprise.id })
+      const task = await startEnterpriseAnalysis(targetEnterprise.id)
+      setGenerationPhase('polling')
+      setGenerationMessage('已开始生成融资方案。')
+      setAnalysisPolling({
+        enterpriseId: targetEnterprise.id,
+        taskId: task?.taskId || task?.id || '',
+        resultSource: 'stored',
+      })
+      showToast('已开始生成融资方案', 'success')
+    } catch (e) {
+      setGenerationPhase('failed')
+      setGenerationMessage('融资方案生成失败。')
+      showToast('融资方案生成失败，请稍后重试', 'error')
+      setIsGenerating(false)
+    } finally {
+    }
+  }
+
+  const handleShowGeneratedAnalysis = async () => {
+    if (!enterprise) return
+    matchingCollapsedRef.current = false
+    setShowMatching(true)
+    setShowSummary(false)
+    if (products.length > 0) return
+
+    setGenerationPhase('background')
+    setGenerationMessage('正在加载融资方案...')
+    try {
+      const { analysis } = await refreshEnterpriseAnalysis(enterprise.id, '', dispatch)
+      setGenerationPhase(analysis ? 'ready' : 'background')
+      setGenerationMessage(analysis ? '融资方案已更新。' : '暂未获取到方案明细，请稍后刷新。')
+      if (!analysis) showToast('方案明细暂未返回，请稍后再试', 'error')
+    } catch (e) {
+      setGenerationPhase('failed')
+      setGenerationMessage('方案明细加载失败。')
+      showToast('方案明细加载失败，请稍后重试', 'error')
+    }
+  }
+
+  const handleCopySummary = () => {
+    navigator.clipboard.writeText(getSummaryText())
+      .then(() => showToast('已复制', 'success'), () => showToast('复制失败', 'error'))
+  }
+
+  const handleCollapseMatching = () => {
+    matchingCollapsedRef.current = true
+    setShowMatching(false)
+    setShowSummary(false)
+    setExpandedProduct(null)
+    setExpandedInvestorReasons({})
+  }
+
+  const toggleEnterpriseText = (fieldId) => {
+    setExpandedEnterpriseText(prev => ({ ...prev, [fieldId]: !prev[fieldId] }))
+  }
+
+  const toggleInvestorReason = (reasonKey) => {
+    setExpandedInvestorReasons(prev => ({ ...prev, [reasonKey]: !prev[reasonKey] }))
+  }
+
+  const renderEnterpriseFieldValue = (field) => {
+    const key = field.id || field.label
+    const value = hasValue(field.value) ? String(field.value) : '暂未填写'
+    const isLong = field.long || value.length > 34
+    const isExpanded = Boolean(expandedEnterpriseText[key])
+    return (
+      <div className="info-value-wrap">
+        <p className={`info-text ${isLong && !isExpanded ? 'text-clamp-2' : ''}`}>{value}</p>
+        {isLong && (
+          <button className={`expand-toggle expand-toggle-inline ${isExpanded ? 'is-open' : ''}`} onClick={() => toggleEnterpriseText(key)}>
+            <span>{isExpanded ? '收起' : '查看全文'}</span>
+            {Icons.chevronDown}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const renderIdleHome = () => <IdleHomeHero isBusy={isBusy} onStartChat={openLeadForm} />
+
+  const renderLeadForm = () => (
+    <EnterpriseLeadForm
+      initialValues={enterprise}
+      isSubmitting={isSubmitting}
+      onBack={() => setPhase(enterprise ? 'collected' : 'idle')}
+      onSubmit={handleLeadSubmit}
+    />
+  )
+
+  const renderCollectedHome = () => (
+    <div className="page-content">
+      <CollectedHomeHero
+        companyName={enterprise.companyName}
+        generationActionLabel={generationAction.label}
+        isSupplementChecking={isSupplementChecking}
+        hasMissingFields={hasMissingFields}
+        planStepClass={planStepClass}
+        planStepLabel={planStepLabel}
+      />
+
+      <EnterpriseInfoSection
+        coreEnterpriseFields={coreEnterpriseFields}
+        extraEnterpriseFields={extraEnterpriseFields}
+        showFullEnterpriseInfo={showFullEnterpriseInfo}
+        isBusy={isBusy}
+        renderEnterpriseFieldValue={renderEnterpriseFieldValue}
+        onRestartChat={openLeadForm}
+        onToggleFullEnterpriseInfo={() => setShowFullEnterpriseInfo(prev => !prev)}
+      />
+
+      <section className="section panel-section" ref={generationSectionRef}>
+        {!canShowMatching ? (
+          <div className="generation-action-panel">
+            <div className="generation-action-head">
+              <div>
+                <strong>{generationAction.title}</strong>
+                <p>{isPlanGenerating && generationMessage ? generationMessage : generationAction.desc}</p>
+              </div>
+              <span className={`generation-action-state ${generationAction.className}`}>{generationAction.label}</span>
+            </div>
+            {(isPlanGenerating || generationPhase === 'failed') && renderGenerationStatus()}
+            <div className="generation-action-footer">
+              {hasGeneratedPlan && (
+                <button className="btn-primary" onClick={handleShowGeneratedAnalysis} disabled={isBusy}>
+                  查看融资方案
+                </button>
+              )}
+              <button
+                className={hasGeneratedPlan ? 'btn-outline' : 'btn-primary'}
+                onClick={handleGenerateAnalysis}
+                disabled={isBusy || !canGeneratePlan || isPlanGenerating}
+              >
+                {isPlanGenerating ? '正在生成方案...' : hasGeneratedPlan ? '重新生成' : '生成融资方案'}
+              </button>
+            </div>
+          </div>
+        ) : (
+            <div className="matching-section">
+              <div className="section-title-row">
+                <div>
+                  <h3 className="section-title" style={{ marginBottom: 0 }}>融资方案与产品匹配</h3>
+                <p className="section-subtitle">{hasProducts ? `已生成 ${products.length} 个方案，点击方案查看匹配机构` : '正在加载方案结果'}</p>
+                </div>
+                <button className={`btn-outline btn-sm summary-inline-trigger ${showSummary ? 'is-open' : ''}`} onClick={() => setShowSummary(prev => !prev)}>
+                  {showSummary ? '收起摘要' : '融资摘要'}
+                </button>
+              </div>
+              {showSummary && (
+                <div className="summary-panel-wrap">
+                  <div className="material-section">
+                    <div className="material-header"><h4>融资需求摘要</h4><button className="btn-text" onClick={handleCopySummary} disabled={isBusy}>复制</button></div>
+                    <pre className="material-content">{getSummaryText()}</pre>
+                  </div>
+                </div>
+              )}
+              <div className="matching-action-strip">
+                <button className="matching-action-btn summary" onClick={handleGenerateAnalysis} disabled={isBusy || isPlanGenerating || !canGeneratePlan}>
+                  <span>{isPlanGenerating ? '生成中...' : '重新生成方案'}</span>
+                <small>更新匹配</small>
+              </button>
+              <button className="matching-action-btn ghost" onClick={handleCollapseMatching}>
+                <span>收起</span>
+                  <small>隐藏结果</small>
+                </button>
+              </div>
+              {hasProducts ? renderProductList() : renderGenerationStatus()}
+            </div>
+        )}
+      </section>
+    </div>
+  )
+
+  const renderGenerationStatus = () => {
+    return (
+      <GenerationStatus
+        isPlanGenerating={isPlanGenerating}
+        generationPhase={generationPhase}
+        generationMessage={generationMessage}
+        hasGeneratedPlan={hasGeneratedPlan}
+      />
+    )
+  }
+
+  const renderProductList = () => (
+    <ProductMatchList
+      products={products}
+      expandedProduct={expandedProduct}
+      expandedInvestorReasons={expandedInvestorReasons}
+      contactSubmittingKey={contactSubmittingKey}
+      statusColors={STATUS_COLORS}
+      canInitiateContact={canInitiateContact}
+      getInvestorStatusText={getInvestorStatusText}
+      getInitiateContactLabel={getInitiateContactLabel}
+      onToggleProduct={setExpandedProduct}
+      onToggleInvestorReason={toggleInvestorReason}
+      onInitiateContact={handleInitiateContact}
+    />
+  )
+
+  return (
+    <div className="portal enterprise-portal">
+      <Topbar role="企业用户" theme={theme} setTheme={setTheme} onLogout={onLogout} />
+      <main className="main-content">
+        {phase === 'idle' && renderIdleHome()}
+        {phase === 'leadForm' && renderLeadForm()}
+        {phase === 'collected' && enterprise && renderCollectedHome()}
+      </main>
+
+      {phase === 'chatting' && (
+        <ChatDialog
+          enterprise={enterprise}
+          questions={questions}
+          chatStep={chatStep}
+          chatLog={chatLog}
+          inputText={inputText}
+          setInputText={setInputText}
+          isListening={isListening}
+          isAnswering={isAnswering}
+          isSubmitting={isSubmitting}
+          chatEndRef={chatEndRef}
+          chatInputRef={chatInputRef}
+          onClose={setPhase}
+          onVoiceInput={handleVoiceInput}
+          onKeyDown={handleKeyDown}
+          onSend={sendMessage}
+          onFinish={finishChat}
+        />
+      )}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
+    </div>
+  )
+}

@@ -1,0 +1,62 @@
+/* Enterprise portal styles live here for new styles. */
+
+.enterprise-lead-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.enterprise-lead-hero {
+  padding: 22px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 34%),
+    var(--gradient);
+  color: #fff;
+  box-shadow: 0 24px 56px rgba(37, 99, 235, 0.16);
+}
+
+.enterprise-lead-hero p {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.enterprise-lead-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 22px;
+  background: var(--bg-card);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.06);
+}
+
+.enterprise-lead-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-sec);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.enterprise-lead-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.enterprise-lead-actions .btn-primary,
+.enterprise-lead-actions .btn-outline {
+  min-height: 48px;
+}
+
+@media (max-width: 420px) {
+  .enterprise-lead-actions {
+    grid-template-columns: 1fr;
+  }
+}
