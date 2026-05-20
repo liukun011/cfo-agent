@@ -86,7 +86,8 @@ export default function QuestionBankPage({
                     <input
                       className="form-input"
                       type="number"
-                      min="0"
+                      min="1"
+                      max={questions.length}
                       step="1"
                       value={editingQuestionSort}
                       onChange={(e) => onEditingQuestionSortChange(e.target.value)}

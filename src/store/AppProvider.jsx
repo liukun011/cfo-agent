@@ -145,7 +145,12 @@ export function appReducer(state, action) {
       const questions = records
         .map(mapQuestionVO)
         .filter(q => q.id && q.text)
-        .sort((a, b) => a.sort - b.sort)
+        .sort((a, b) => Number(a.rawSortOrder ?? a.sort ?? 0) - Number(b.rawSortOrder ?? b.sort ?? 0))
+        .map((question, index) => ({
+          ...question,
+          sortOrder: index + 1,
+          sort: index + 1,
+        }))
       return { ...state, questions, questionStatus: 'success', questionError: '' }
     }
 

@@ -58,6 +58,7 @@ export function mapEnterpriseVO(item) {
 }
 
 export function mapQuestionVO(item) {
+  const rawSortOrder = Number(item.sortOrder ?? item.sort ?? 0)
   return {
     id: String(item.id || ''),
     text: item.description || item.text || item.questionName || '',
@@ -65,8 +66,9 @@ export function mapQuestionVO(item) {
     questionName: item.questionName || '',
     questionType: item.questionType || '',
     description: item.description || '',
-    sortOrder: Number(item.sortOrder ?? item.sort ?? 0),
-    sort: Number(item.sortOrder ?? item.sort ?? 0),
+    sortOrder: rawSortOrder,
+    sort: rawSortOrder,
+    rawSortOrder,
     note: item.questionType || item.note || item.questionName || '',
     deleted: Boolean(item.deleteFlag),
   }

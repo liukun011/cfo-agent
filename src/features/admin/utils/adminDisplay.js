@@ -8,7 +8,7 @@ export function getCfoVisibleInvestors(product) {
 }
 
 export function getLatestQuestionSort(questions = []) {
-  const maxSort = questions.reduce((max, question) => Math.max(max, Number(question.sortOrder ?? question.sort) || 0), 0)
+  const maxSort = questions.reduce((max, question) => Math.max(max, Number(question.rawSortOrder ?? question.sortOrder ?? question.sort) || 0), 0)
   return maxSort + 1
 }
 

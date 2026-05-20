@@ -114,8 +114,9 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
     if (!newQuestion.trim()) return
     try {
       const latestSort = getLatestQuestionSort(state.questions)
+      const displayIndex = (state.questions || []).length + 1
       const payload = {
-        questionName: `问题 ${latestSort}`,
+        questionName: `问题 ${displayIndex}`,
         description: newQuestion.trim(),
         sortOrder: latestSort,
       }
@@ -148,15 +149,19 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
       showToast('请输入有效排序值', 'error')
       return
     }
+    if (sortOrder < 1 || sortOrder > (state.questions || []).length) {
+      showToast('排序值需在当前题目范围内', 'error')
+      return
+    }
     try {
       setQuestionSubmittingId(question.id)
-      await updateQuestion({
-        id: question.id,
-        questionName: question.questionName || question.title || `问题 ${question.sort || ''}`.trim(),
-        questionType: question.questionType || '',
-        sortOrder,
-        description,
-      })
+      const updatedQuestion = { ...question, description, text: description }
+      const orderedQuestions = reorderQuestionToIndex(
+        (state.questions || []).map(item => item.id === question.id ? updatedQuestion : item),
+        question.id,
+        sortOrder - 1,
+      )
+      await persistQuestionOrder(orderedQuestions)
       setEditingQuestionId('')
       setEditingQuestionText('')
       setEditingQuestionSort('')
@@ -197,20 +202,31 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
     description: question.description || question.text || '',
   })
 
+  const persistQuestionOrder = async (orderedQuestions) => {
+    await Promise.all(orderedQuestions.map((item, index) => updateQuestion(buildQuestionUpdatePayload(item, index + 1))))
+  }
+
+  const reorderQuestionToIndex = (questions, questionId, targetIndex) => {
+    const currentIndex = questions.findIndex(item => item.id === questionId)
+    if (currentIndex < 0) return questions
+    const next = [...questions]
+    const [moving] = next.splice(currentIndex, 1)
+    next.splice(Math.max(0, Math.min(targetIndex, next.length)), 0, moving)
+    return next
+  }
+
   const handleMoveQuestion = async (question, direction) => {
     const questions = state.questions || []
     const index = questions.findIndex(item => item.id === question?.id)
     const targetIndex = index + direction
     const target = questions[targetIndex]
     if (index < 0 || !target) return
-    const currentSort = question.sortOrder ?? question.sort ?? index + 1
-    const targetSort = target.sortOrder ?? target.sort ?? targetIndex + 1
+    const orderedQuestions = [...questions]
+    const [moving] = orderedQuestions.splice(index, 1)
+    orderedQuestions.splice(targetIndex, 0, moving)
     try {
       setQuestionSubmittingId(question.id)
-      await Promise.all([
-        updateQuestion(buildQuestionUpdatePayload(question, targetSort)),
-        updateQuestion(buildQuestionUpdatePayload(target, currentSort)),
-      ])
+      await persistQuestionOrder(orderedQuestions)
       await loadQuestions()
       showToast('排序已更新')
     } catch (e) {
