@@ -43,6 +43,19 @@
   font-weight: 850;
 }
 
+.enterprise-lead-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-error-text {
+  margin: -4px 0 2px;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .enterprise-lead-actions {
   display: grid;
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
@@ -56,6 +69,7 @@
 }
 
 @media (max-width: 420px) {
+  .enterprise-lead-range,
   .enterprise-lead-actions {
     grid-template-columns: 1fr;
   }

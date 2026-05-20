@@ -6,6 +6,8 @@ const EMPTY_FORM = {
   industry: '',
   contactPerson: '',
   contactPhone: '',
+  financingMin: '',
+  financingMax: '',
 }
 
 export default function EnterpriseLeadForm({ initialValues, isSubmitting, onBack, onSubmit }) {
@@ -17,10 +19,15 @@ export default function EnterpriseLeadForm({ initialValues, isSubmitting, onBack
       industry: initialValues?.industry || '',
       contactPerson: initialValues?.contactPerson || '',
       contactPhone: initialValues?.contactPhone || '',
+      financingMin: initialValues?.financingMin || '',
+      financingMax: initialValues?.financingMax || '',
     })
   }, [initialValues])
 
   const canSubmit = Object.values(values).every(value => String(value || '').trim())
+    && Number(values.financingMin) > 0
+    && Number(values.financingMax) > 0
+    && Number(values.financingMax) >= Number(values.financingMin)
 
   const updateValue = (key, value) => {
     setValues(prev => ({ ...prev, [key]: value }))
@@ -59,6 +66,33 @@ export default function EnterpriseLeadForm({ initialValues, isSubmitting, onBack
           <span>联系方式 *</span>
           <input className="form-input" value={values.contactPhone} onChange={e => updateValue('contactPhone', e.target.value)} placeholder="请输入手机号或联系电话" />
         </label>
+        <div className="enterprise-lead-range">
+          <label>
+            <span>本次融资额度下限（万元）*</span>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              value={values.financingMin}
+              onChange={e => updateValue('financingMin', e.target.value)}
+              placeholder="例如 500"
+            />
+          </label>
+          <label>
+            <span>本次融资额度上限（万元）*</span>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              value={values.financingMax}
+              onChange={e => updateValue('financingMax', e.target.value)}
+              placeholder="例如 1000"
+            />
+          </label>
+        </div>
+        {values.financingMin && values.financingMax && Number(values.financingMax) < Number(values.financingMin) && (
+          <p className="form-error-text">融资额度上限不能小于下限</p>
+        )}
 
         <div className="enterprise-lead-actions">
           <button type="button" className="btn-outline" onClick={onBack} disabled={isSubmitting}>返回</button>

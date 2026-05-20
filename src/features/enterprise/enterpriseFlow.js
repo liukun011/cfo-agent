@@ -19,6 +19,8 @@ export function buildEnterprisePayload(questions, answers, baseInfo = {}) {
   const qualification = findAnswer(entries, ['资质', '证书', '专利']) || ''
   const revenue = extractFirstWan(finance)
   const financing = extractFirstWan(demand)
+  const financingMin = toPositiveNumber(baseInfo.financingMin) || financing || undefined
+  const financingMax = toPositiveNumber(baseInfo.financingMax) || financingMin
 
   return {
     companyName,
@@ -27,8 +29,8 @@ export function buildEnterprisePayload(questions, answers, baseInfo = {}) {
     contactPhone: baseInfo.contactPhone || '',
     revenueMin: revenue ? Math.max(0, Math.round(revenue * 0.75)) : undefined,
     revenueMax: revenue ? Math.round(revenue * 1.25) : undefined,
-    financingMin: financing || undefined,
-    financingMax: financing || undefined,
+    financingMin,
+    financingMax,
     financingPurpose: demand,
     coreProblems,
     assetStatus: [assetStatus, qualification].filter(Boolean).join('；'),
@@ -51,6 +53,8 @@ export function buildEnterpriseLeadPayload(values) {
     industry: String(values.industry || '').trim(),
     contactPerson: String(values.contactPerson || '').trim(),
     contactPhone: String(values.contactPhone || '').trim(),
+    financingMin: toPositiveNumber(values.financingMin) || undefined,
+    financingMax: toPositiveNumber(values.financingMax) || undefined,
     extendedInfo: [],
     aiTags: [],
     createdBy: getCurrentUserId(),
@@ -94,6 +98,11 @@ function extractCompanyName(text) {
 function extractFirstWan(text) {
   const match = text?.match(/(\d+(?:\.\d+)?)\s*(?:多)?\s*万/)
   return match ? Number(match[1]) : 0
+}
+
+function toPositiveNumber(value) {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? number : 0
 }
 
 function formatWan(value) {
