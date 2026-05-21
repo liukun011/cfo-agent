@@ -217,7 +217,7 @@ export function updateTagFormFieldValue(schema, fieldId, value) {
 export function getTagFormMissingRequiredLabels(schema) {
   return (schema?.sections || [])
     .flatMap(section => section.fields || [])
-    .filter(field => field.required && isEmptyValue(field.value))
+    .filter(field => isRequiredField(field) && isEmptyValue(field.value))
     .map(field => field.label || field.field_id || '未命名字段')
 }
 
@@ -227,7 +227,7 @@ export function flattenTagFormFields(schema) {
       id: field.field_id || field.id,
       label: field.label || field.field_id || '',
       value: field.value ?? '',
-      required: Boolean(field.required),
+      required: isRequiredField(field),
       sort: Number(field.sort || field.order || index + 1),
       hint: field.placeholder || field.hint || '',
     }))
@@ -247,7 +247,7 @@ export function getInvestorTagFormSchema(fields = []) {
         order: Number(field.sort || index + 1),
         type: inferInvestorFieldType(field),
         label: field.label || field.id || '未命名字段',
-        required: Boolean(field.required),
+        required: isRequiredField(field),
         placeholder: field.hint || '请输入字段内容',
         value: normalizeSchemaValue(field.value, inferInvestorFieldType(field)),
       }))
@@ -283,6 +283,7 @@ function normalizeInvestorFilledForm(form = {}) {
         ...field,
         field_id: field.field_id || field.id || `field_${sectionIndex + 1}_${fieldIndex + 1}`,
         order: Number(field.order || field.sort || fieldIndex + 1),
+        required: isRequiredField(field),
         placeholder: field.placeholder || field.hint || '',
         value: normalizeSchemaValue(field.value, field.type),
       })).sort((a, b) => Number(a.order || 0) - Number(b.order || 0)),
@@ -374,6 +375,27 @@ function isEmptyValue(value) {
   return !String(value ?? '').trim()
 }
 
+function normalizeSectionRequiredFlags(sections = []) {
+  return (sections || []).map(section => ({
+    ...section,
+    fields: (section.fields || []).map(field => ({
+      ...field,
+      required: isRequiredField(field),
+    })),
+  }))
+}
+
+function isRequiredField(field = {}) {
+  return normalizeRequiredFlag(field.required)
+}
+
+function normalizeRequiredFlag(value) {
+  if (typeof value === 'string') {
+    return ['true', '1', 'yes', 'y', 'required'].includes(value.trim().toLowerCase())
+  }
+  return value === true || value === 1
+}
+
 function cloneSchema(schema) {
   return JSON.parse(JSON.stringify(schema))
 }
@@ -419,7 +441,7 @@ function normalizeBasicSection(section = null) {
       field_id: field.field_id || field.id || FIXED_BASIC_SECTION.fields[index]?.field_id || `basic_${index + 1}`,
       order: index + 1,
       type: field.type || 'text',
-      required: index < fixedFields.length ? true : Boolean(field.required),
+      required: index < fixedFields.length ? true : isRequiredField(field),
       locked: true,
     })),
   }
@@ -446,7 +468,7 @@ function normalizeCategoryOption(category = {}) {
 }
 
 function categoryToSchema(category = {}, parentId = '') {
-  const sections = parseSections(category.sections)
+  const sections = normalizeSectionRequiredFlags(parseSections(category.sections))
   return normalizeAdminSchema({
     id: category.id || '',
     form_id: category.id || category.code || category.categoryCode || `category_${Date.now()}`,
