@@ -14,6 +14,19 @@ export default function OpportunityCard({
   const isPending = request.status === '待确认'
   const hasMatchRate = request.matchRate !== undefined && request.matchRate !== null && request.matchRate !== ''
   const matchRateText = hasMatchRate ? `${request.matchRate}%` : '未填写'
+  const coreMetrics = [
+    { label: '融资总额', value: request.amount || '未填写' },
+    { label: '推荐产品', value: request.routeName || request.product || '未填写' },
+    { label: '方案金额', value: formatWan(request.raw?.amountWan) || '未填写' },
+    { label: '匹配度', value: matchRateText, score: hasMatchRate },
+  ]
+  const detailMetrics = [
+    { label: '资金用途', value: request.fundPurpose || request.demandType || '未填写' },
+    { label: '资金缺口', value: formatWan(request.fundingGapWan) || '未填写' },
+    { label: '覆盖率', value: formatMaybePercent(request.coverageRate) || '未填写' },
+    { label: '综合成本', value: request.weightedAvgCost || '未填写' },
+    { label: '还款安全', value: request.repaymentSafetyLevel || '未填写' },
+  ]
 
   return (
     <div className={`capital-request-card ${isPending ? 'is-pending' : 'is-confirmed'}`}>
@@ -33,18 +46,15 @@ export default function OpportunityCard({
           </div>
         )}
         <div className="request-summary-grid">
-          <div><span>融资总额</span><b>{request.amount || '未填写'}</b></div>
-          <div><span>推荐产品</span><b>{request.routeName || request.product || '未填写'}</b></div>
-          <div><span>方案金额</span><b>{formatWan(request.raw?.amountWan) || '未填写'}</b></div>
-          <div><span>资金用途</span><b>{request.fundPurpose || request.demandType || '未填写'}</b></div>
-          <div><span>资金缺口</span><b>{formatWan(request.fundingGapWan) || '未填写'}</b></div>
-          <div><span>覆盖率</span><b>{formatMaybePercent(request.coverageRate) || '未填写'}</b></div>
-          <div><span>综合成本</span><b>{request.weightedAvgCost || '未填写'}</b></div>
-          <div><span>还款安全</span><b>{request.repaymentSafetyLevel || '未填写'}</b></div>
-          <div><span>匹配度</span><b className={hasMatchRate ? 'request-score' : ''}>{matchRateText}</b></div>
+          {coreMetrics.map(item => (
+            <div key={item.label}><span>{item.label}</span><b className={item.score ? 'request-score' : ''}>{item.value}</b></div>
+          ))}
         </div>
         {isExpanded && (
           <div className="request-detail-block">
+            <div className="request-summary-grid request-summary-grid-detail">
+              {detailMetrics.map(item => <div key={item.label}><span>{item.label}</span><b>{item.value}</b></div>)}
+            </div>
             {request.matchReason && <div className="request-row request-reason"><span className="request-label">匹配原因</span><p className="request-text">{request.matchReason}</p></div>}
             {request.matchRisk && <div className="request-row request-reason"><span className="request-label">风险提示</span><p className="request-text">{request.matchRisk}</p></div>}
             {request.missingMaterials.length > 0 && <div className="request-row"><span className="request-label">缺失材料</span><span className="request-value missing">{request.missingMaterials.join('、')}</span></div>}

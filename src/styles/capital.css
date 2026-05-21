@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-bottom: 96px;
+  padding-bottom: 118px;
 }
 
 .tag-form-head {
@@ -84,6 +84,10 @@
   background: linear-gradient(180deg, rgba(239,246,255,0.58), rgba(255,255,255,0.78));
 }
 
+.tag-form-selector .form-input {
+  min-height: 46px;
+}
+
 .tag-form-selector .form-builder-select-field {
   display: flex;
   flex-direction: column;
@@ -107,13 +111,13 @@
 
 .tag-form-bottom-save {
   position: sticky;
-  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   z-index: 88;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 118px;
   align-items: center;
   gap: 10px;
-  min-height: 58px;
+  min-height: 54px;
   margin: 2px 0 4px;
   padding: 10px 12px;
   border-radius: 18px;
@@ -121,7 +125,7 @@
   background: rgba(255,255,255,0.9);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  box-shadow: 0 12px 28px rgba(15,23,42,0.1);
+  box-shadow: 0 16px 36px rgba(15,23,42,0.12);
 }
 
 .tag-form-bottom-save.is-ready {
@@ -156,8 +160,7 @@
 }
 
 @media (max-width: 420px) {
-  .tag-form-head,
-  .tag-form-bottom-save {
+  .tag-form-head {
     grid-template-columns: 1fr;
   }
 
@@ -170,11 +173,14 @@
   }
 
   .tag-form-bottom-save {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 104px;
+    gap: 8px;
+    padding: 9px 10px;
   }
 
   .tag-form-bottom-save > button {
-    width: 100%;
+    width: 104px;
+    min-height: 40px;
   }
 }
 
@@ -223,6 +229,16 @@
 .dynamic-form-field {
   padding: 16px 18px;
   border-bottom: 1px solid var(--border-light);
+}
+
+.dynamic-form-field.is-missing {
+  background: linear-gradient(90deg, rgba(239,68,68,0.06), transparent 34%);
+}
+
+.dynamic-form-field.is-missing .dynamic-form-label em {
+  color: #dc2626;
+  border-color: rgba(239,68,68,0.22);
+  background: rgba(239,68,68,0.08);
 }
 
 .dynamic-form-field:last-child {
@@ -308,4 +324,47 @@
   border-color: rgba(37, 99, 235, 0.42);
   background: rgba(37, 99, 235, 0.1);
   color: var(--accent);
+}
+
+.institution-overview-panel {
+  border-radius: 24px;
+}
+
+.institution-overview-top {
+  align-items: center;
+}
+
+.institution-code-box {
+  min-width: 148px;
+  padding: 12px 14px;
+  border-radius: 18px;
+}
+
+.institution-code-box b {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+
+.associated-investor-card {
+  border-radius: 20px;
+}
+
+.associated-investor-meta {
+  grid-template-columns: 1fr;
+}
+
+.associated-investor-meta div {
+  min-height: 54px;
+}
+
+.request-summary-grid-detail {
+  margin-bottom: 14px;
+}
+
+.capital-request-card {
+  border-radius: 22px;
+}
+
+.request-action-bar {
+  margin-top: 14px;
 }

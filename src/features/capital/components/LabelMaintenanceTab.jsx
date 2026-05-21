@@ -71,23 +71,30 @@ export default function LabelMaintenanceTab({
             </label>
             {isLoadingTagForms && <span className="tag-form-selector-loading">加载中...</span>}
           </div>
-          {resolvedFormSchema.sections.map(section => (
+          {resolvedFormSchema.sections.map(section => {
+            const sortedFields = [...(section.fields || [])].sort((a, b) => {
+              if (Boolean(a.required) !== Boolean(b.required)) return a.required ? -1 : 1
+              return (a.order || 0) - (b.order || 0)
+            })
+            return (
             <section key={section.section_id} className="dynamic-form-section">
               <div className="dynamic-form-section-head">
                 <span />
                 <h3>{section.title}</h3>
               </div>
               <div className="dynamic-form-fields">
-                {section.fields.map(field => (
+                {sortedFields.map(field => (
                   <DynamicTagField
                     key={field.field_id}
                     field={field}
+                    isMissing={Boolean(field.required) && isEmptyFieldValue(field.value, field.type)}
                     onChange={value => onUpdateLabelDraft(field.field_id, value)}
                   />
                 ))}
               </div>
             </section>
-          ))}
+            )
+          })}
         {loading && <div className="inline-loading label-form-loading"><span className="spinner" />正在加载机构资料...</div>}
         <div className={`tag-form-bottom-save ${canSaveLabels ? 'is-ready' : 'is-incomplete'}`}>
           <div>
@@ -103,10 +110,10 @@ export default function LabelMaintenanceTab({
   )
 }
 
-function DynamicTagField({ field, onChange }) {
+function DynamicTagField({ field, isMissing, onChange }) {
   const value = field.value ?? (field.type === 'checkbox' ? [] : '')
   return (
-    <div className="dynamic-form-field">
+    <div className={`dynamic-form-field ${isMissing ? 'is-missing' : ''}`}>
       <label className="dynamic-form-label">
         <span>{field.label}{field.required && <b>*</b>}</span>
         <em>{field.required ? '必填' : '选填'}</em>
@@ -115,6 +122,11 @@ function DynamicTagField({ field, onChange }) {
       {field.placeholder && <p className="dynamic-form-hint">{field.placeholder}</p>}
     </div>
   )
+}
+
+function isEmptyFieldValue(value, type) {
+  if (type === 'checkbox') return !Array.isArray(value) || value.length === 0
+  return value === undefined || value === null || String(value).trim() === ''
 }
 
 function renderControl(field, value, onChange) {

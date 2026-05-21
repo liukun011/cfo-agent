@@ -17,3 +17,88 @@
   background: rgba(127, 29, 29, 0.32);
   color: #fca5a5;
 }
+
+/* Product-level polish pass: consistent actions, cards, and mobile-safe controls. */
+.btn-primary,
+.btn-outline,
+.btn-danger,
+.btn-text {
+  min-height: 40px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding-inline: 16px;
+}
+
+.btn-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.page-content {
+  gap: 18px;
+}
+
+.page-intro,
+.section-title-row {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.page-subtitle,
+.section-subtitle {
+  color: var(--text-sec);
+  line-height: 1.65;
+}
+
+.empty-panel,
+.smart-empty {
+  border-radius: 22px;
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+.topbar {
+  min-height: 64px;
+}
+
+.topbar-btn {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.bottom-nav,
+.admin-nav {
+  box-shadow: 0 -18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.admin-nav-item.active,
+.bottom-nav .nav-item.active {
+  background: rgba(37, 99, 235, 0.09);
+  border-radius: 18px;
+}
+
+.expand-toggle {
+  min-height: 34px;
+  border-radius: 999px;
+}
+
+@media (max-width: 420px) {
+  .page-intro,
+  .section-title-row {
+    flex-direction: column;
+  }
+
+  .page-intro > button,
+  .section-title-row > button {
+    align-self: stretch;
+  }
+}

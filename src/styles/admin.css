@@ -1585,6 +1585,211 @@
   }
 }
 
+/* Three-portal polish pass for admin workspaces. */
+.admin-portal .enterprise-card {
+  border-radius: 22px;
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+.admin-portal .enterprise-card-footer {
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-portal .enterprise-detail-entry {
+  min-width: 96px;
+}
+
+.admin-detail-page {
+  gap: 20px;
+}
+
+.admin-detail-page .detail-summary-card,
+.admin-detail-page .detail-purpose,
+.admin-detail-page .detail-block,
+.admin-detail-page .matching-review-block {
+  border-radius: 24px;
+}
+
+.question-add {
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(37,99,235,0.08), transparent 34%),
+    var(--bg-card);
+  box-shadow: 0 18px 42px rgba(15,23,42,0.06);
+}
+
+.question-card {
+  border-radius: 22px;
+}
+
+.question-header {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.question-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.question-icon-btn {
+  width: 36px;
+  min-width: 36px;
+  padding-inline: 0;
+}
+
+.question-display {
+  display: grid;
+  gap: 8px;
+}
+
+.question-name-display {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.question-text {
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.question-edit-panel {
+  grid-template-columns: 1fr;
+}
+
+.form-builder-filter-card {
+  border-radius: 24px;
+}
+
+.form-builder-filter-controls {
+  align-items: stretch;
+}
+
+.form-builder-filter-controls .form-builder-select-field,
+.form-builder-filter-summary,
+.form-builder-filter-controls > button {
+  min-height: 64px;
+}
+
+.form-builder-filter-summary {
+  justify-content: center;
+}
+
+.form-config-card {
+  border-radius: 24px;
+}
+
+.form-config-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.form-config-actions .btn-sm,
+.form-builder-hero-actions .btn-sm,
+.matching-rule-card-actions .btn-sm {
+  min-height: 40px;
+}
+
+.builder-section-card {
+  border-radius: 22px;
+}
+
+.builder-section-actions {
+  gap: 8px;
+}
+
+.builder-section-actions button {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.field-type-rail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field-type-rail button {
+  min-height: 64px;
+  text-align: left;
+}
+
+.matching-rules-hero,
+.matching-rule-card,
+.matching-rule-editor-card,
+.matching-channel-panel {
+  border-radius: 24px;
+}
+
+.matching-filter-quick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+}
+
+.matching-rule-card-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.matching-target-card {
+  border-radius: 18px;
+}
+
+.matching-channel-panel {
+  max-height: min(72vh, 680px);
+  overflow: hidden;
+}
+
+.matching-channel-panel .matching-node-categories {
+  max-height: min(44vh, 420px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+@media (max-width: 420px) {
+  .question-header {
+    flex-direction: column;
+  }
+
+  .question-header-actions {
+    width: 100%;
+  }
+
+  .question-header-actions .btn-sm:not(.question-icon-btn) {
+    flex: 1;
+  }
+
+  .form-builder-filter-controls,
+  .form-config-card-head,
+  .matching-filter-quick,
+  .matching-rule-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .form-config-actions {
+    width: 100%;
+  }
+
+  .form-config-actions .btn-sm {
+    flex: 1;
+  }
+
+  .field-type-rail {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Matching rules v2 */
 .matching-rules-page .form-builder-stats {
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -11,7 +11,7 @@ export default function EnterpriseInfoSection({
           <h3 className="section-title" style={{ marginBottom: 0 }}>基础信息</h3>
           <p className="section-subtitle">展示企业提交的基础资料</p>
         </div>
-        <button className="btn-text btn-sm" onClick={onRestartChat} disabled={isBusy}>编辑并重新采集</button>
+        <button className="btn-outline btn-sm enterprise-edit-entry" onClick={onRestartChat} disabled={isBusy}>编辑资料</button>
       </div>
       <div className="info-card scan-card">
         {coreEnterpriseFields.map(field => (

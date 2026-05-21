@@ -14,10 +14,13 @@ export default function ProductCard({
   onToggleInvestorReason,
   onInitiateContact,
 }) {
-  const routeMetaItems = [
+  const summaryMetaItems = [
     { label: '融资额度', value: product.amount },
-    { label: '需求占比', value: product.ratioOfTotal },
     { label: '融资期限', value: product.term },
+    { label: '资金方', value: product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '暂无' },
+  ]
+  const detailMetaItems = [
+    { label: '需求占比', value: product.ratioOfTotal },
     { label: '还款方式', value: product.repaymentMethod },
     { label: '资金用途', value: product.purpose, wide: true },
     { label: '增信方案', value: product.enhancementNote, wide: true },
@@ -56,8 +59,8 @@ export default function ProductCard({
             </span>
           </div>
         </div>
-        <div className="product-meta-grid">
-          {routeMetaItems.map(item => (
+        <div className="product-meta-grid product-meta-grid-summary">
+          {summaryMetaItems.map(item => (
             <div key={item.label} className={`product-meta-item ${item.wide ? 'wide' : ''}`}>
               <span>{item.label}</span>
               <strong>{item.value || '待补充'}</strong>
@@ -67,6 +70,14 @@ export default function ProductCard({
       </div>
       {isExpanded && (
         <div className="product-detail">
+          <div className="product-meta-grid product-meta-grid-detail">
+            {detailMetaItems.map(item => (
+              <div key={item.label} className={`product-meta-item ${item.wide ? 'wide' : ''}`}>
+                <span>{item.label}</span>
+                <strong>{item.value || '待补充'}</strong>
+              </div>
+            ))}
+          </div>
           <div className="product-detail-grid">
             <div className="detail-section detail-panel">
               <h5>风险点说明</h5>

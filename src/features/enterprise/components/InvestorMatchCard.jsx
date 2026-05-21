@@ -48,7 +48,7 @@ export default function InvestorMatchCard({
       </div>
       {canClickInvestor && (
         <button
-          className="btn-primary btn-sm mt-8"
+          className="btn-primary btn-sm investor-primary-action"
           onClick={(e) => {
             e.stopPropagation()
             onInitiateContact(productId, investor.id)
@@ -58,9 +58,15 @@ export default function InvestorMatchCard({
           {contactSubmittingKey === contactKey ? '提交中...' : getInitiateContactLabel(investor)}
         </button>
       )}
-      {(investor.status === '待审核' || investor.status === '待确认') && <div className="status-text">已发起对接，等待资金方确认</div>}
-      {investor.status === '已推送' && <div className="status-text" style={{ color: 'var(--info)' }}>已确认对接</div>}
-      {investor.status === '已确认' && contactText && <div className="contact-info"><div className="contact-row">{contactText}</div></div>}
+      {(investor.status === '待审核' || investor.status === '待确认') && (
+        <div className="investor-state-strip">待资金方确认</div>
+      )}
+      {(investor.status === '已推送' || investor.status === '已确认') && (
+        <div className="investor-state-strip is-confirmed">
+          <span>已确认对接</span>
+          {contactText && <small>{contactText}</small>}
+        </div>
+      )}
     </div>
   )
 }

@@ -68,9 +68,143 @@
   min-height: 48px;
 }
 
+.enterprise-portal .enterprise-summary-hero {
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(37, 99, 235, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(255,255,255,0.96), rgba(248,250,252,0.9));
+  border: 1px solid rgba(148, 163, 184, 0.26);
+}
+
+.enterprise-portal .enterprise-summary-hero .home-title {
+  color: var(--text);
+}
+
+.enterprise-portal .enterprise-summary-hero .home-kicker {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.enterprise-portal .enterprise-summary-hero .enterprise-stage-pill {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.16);
+  color: var(--accent);
+}
+
+.enterprise-portal .enterprise-summary-hero .flow-step {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: var(--text-sec);
+}
+
+.enterprise-portal .enterprise-summary-hero .flow-step.done,
+.enterprise-portal .enterprise-summary-hero .flow-step.active {
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent);
+}
+
+.enterprise-portal .summary-inline-trigger {
+  min-width: 118px;
+}
+
+.enterprise-edit-entry {
+  flex-shrink: 0;
+}
+
+.matching-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  margin: 14px 0 16px;
+}
+
+.matching-toolbar .btn-text {
+  padding-inline: 8px;
+}
+
+.enterprise-portal .product-card {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.enterprise-portal .product-card-trigger {
+  cursor: pointer;
+}
+
+.product-meta-grid-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.product-meta-grid-detail {
+  margin-bottom: 16px;
+}
+
+.enterprise-portal .product-meta-item {
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.enterprise-portal .product-title-toggle {
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent);
+}
+
+.enterprise-portal .investor-card {
+  border-radius: 18px;
+}
+
+.investor-primary-action {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.investor-state-strip {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.07);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.investor-state-strip.is-confirmed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.investor-state-strip small {
+  color: var(--text-sec);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 @media (max-width: 420px) {
   .enterprise-lead-range,
   .enterprise-lead-actions {
     grid-template-columns: 1fr;
+  }
+
+  .matching-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .matching-toolbar .btn-text {
+    grid-column: 1 / -1;
+  }
+
+  .product-meta-grid-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .enterprise-edit-entry {
+    width: 100%;
   }
 }

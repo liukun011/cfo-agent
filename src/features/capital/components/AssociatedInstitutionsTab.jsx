@@ -9,16 +9,11 @@ export default function AssociatedInstitutionsTab({
   inviteCode,
   isAssociating,
   loading,
-  expandedPartnerIds,
-  hiddenFieldIds,
-  formatAmountRange,
-  getPartnerFieldValue,
   onRefresh,
   onConfigureLabels,
   onCopyInvitationCode,
   onInviteCodeChange,
   onAssociateInstitution,
-  onTogglePartner,
 }) {
   const inviteHint = inviteCode.length === 0
     ? '输入 5 位邀请码'
@@ -112,11 +107,6 @@ export default function AssociatedInstitutionsTab({
                   <AssociatedInstitutionCard
                     key={partner.id}
                     partner={partner}
-                    isExpanded={expandedPartnerIds.includes(partner.id)}
-                    hiddenFieldIds={hiddenFieldIds}
-                    formatAmountRange={formatAmountRange}
-                    getPartnerFieldValue={getPartnerFieldValue}
-                    onToggleExpanded={onTogglePartner}
                   />
                 ))}
               </div>

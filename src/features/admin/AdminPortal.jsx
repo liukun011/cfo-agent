@@ -157,11 +157,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
       showToast('请填写字段名称和问题描述', 'error')
       return
     }
-    if (!Number.isFinite(sortOrder)) {
-      showToast('请输入有效排序值', 'error')
-      return
-    }
-    if (sortOrder < 1 || sortOrder > (state.questions || []).length) {
+    if (!Number.isFinite(sortOrder) || sortOrder < 1 || sortOrder > (state.questions || []).length) {
       showToast('排序值需在当前题目范围内', 'error')
       return
     }

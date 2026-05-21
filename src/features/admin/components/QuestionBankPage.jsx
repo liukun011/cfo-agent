@@ -95,7 +95,7 @@ export default function QuestionBankPage({
                     </>
                   ) : (
                     <>
-                      <button className="btn-outline btn-sm question-icon-btn question-move-up" aria-label="上移" onClick={() => onMoveQuestion(q, -1)} disabled={Boolean(questionSubmittingId) || idx === 0}>{Icons.chevronDown}</button>
+                      <button className="btn-outline btn-sm question-icon-btn" aria-label="上移" onClick={() => onMoveQuestion(q, -1)} disabled={Boolean(questionSubmittingId) || idx === 0}>{Icons.chevronUp}</button>
                       <button className="btn-outline btn-sm question-icon-btn" aria-label="下移" onClick={() => onMoveQuestion(q, 1)} disabled={Boolean(questionSubmittingId) || idx === questions.length - 1}>{Icons.chevronDown}</button>
                       <button className="btn-outline btn-sm" onClick={() => onStartEditQuestion(q)} disabled={Boolean(questionSubmittingId)}>编辑</button>
                       <button className="btn-danger btn-sm" onClick={() => onDeleteQuestion(q)} disabled={Boolean(questionSubmittingId)}>
@@ -118,7 +118,7 @@ export default function QuestionBankPage({
                     />
                   </label>
                   <label className="question-sort-field">
-                    <span>排序</span>
+                    <span>排序 *</span>
                     <input
                       className="form-input"
                       type="number"
@@ -127,6 +127,7 @@ export default function QuestionBankPage({
                       step="1"
                       value={editingQuestionSort}
                       onChange={(e) => onEditingQuestionSortChange(e.target.value)}
+                      placeholder="输入序号"
                       disabled={questionSubmittingId === q.id}
                     />
                   </label>

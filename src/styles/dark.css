@@ -141,3 +141,90 @@
   background: rgba(15,23,42,0.94);
   border-color: rgba(96,165,250,0.34);
 }
+
+[data-theme='dark'] .topbar-btn {
+  background: rgba(15,23,42,0.72);
+  border-color: rgba(71,85,105,0.62);
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .enterprise-portal .enterprise-summary-hero,
+[data-theme='dark'] .question-add {
+  background:
+    radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 34%),
+    linear-gradient(145deg, rgba(15,23,42,0.96), rgba(30,41,59,0.84));
+  border-color: rgba(71,85,105,0.58);
+}
+
+[data-theme='dark'] .product-meta-item,
+[data-theme='dark'] .request-summary-grid div,
+[data-theme='dark'] .investor-card,
+[data-theme='dark'] .investor-reason,
+[data-theme='dark'] .detail-panel,
+[data-theme='dark'] .dynamic-form-field,
+[data-theme='dark'] .institution-code-box,
+[data-theme='dark'] .associated-investor-meta div,
+[data-theme='dark'] .question-name-display {
+  background: rgba(30,41,59,0.64);
+  border-color: rgba(71,85,105,0.52);
+}
+
+[data-theme='dark'] .product-title-toggle,
+[data-theme='dark'] .summary-inline-trigger,
+[data-theme='dark'] .question-name-display {
+  background: rgba(59,130,246,0.14);
+  border-color: rgba(96,165,250,0.34);
+  color: #bfdbfe;
+}
+
+[data-theme='dark'] .investor-state-strip {
+  background: rgba(59,130,246,0.14);
+  color: #bfdbfe;
+}
+
+[data-theme='dark'] .investor-state-strip.is-confirmed,
+[data-theme='dark'] .contact-revealed,
+[data-theme='dark'] .request-action-bar.is-muted {
+  background: rgba(16,185,129,0.12);
+  border-color: rgba(52,211,153,0.28);
+  color: #a7f3d0;
+}
+
+[data-theme='dark'] .tag-form-selector,
+[data-theme='dark'] .label-save-notice {
+  background: rgba(15,23,42,0.86);
+  border-color: rgba(71,85,105,0.58);
+}
+
+[data-theme='dark'] .dynamic-form-field.is-missing {
+  background: linear-gradient(90deg, rgba(248,113,113,0.12), transparent 38%);
+}
+
+[data-theme='dark'] .dynamic-form-field.is-missing .dynamic-form-label em {
+  color: #fecaca;
+  border-color: rgba(248,113,113,0.32);
+  background: rgba(127,29,29,0.28);
+}
+
+[data-theme='dark'] .capital-request-card.is-pending .request-header,
+[data-theme='dark'] .capital-request-card.is-confirmed .request-header {
+  background: rgba(15,23,42,0.72);
+}
+
+[data-theme='dark'] .request-tag-row span,
+[data-theme='dark'] .product-tag,
+[data-theme='dark'] .tag-item {
+  background: rgba(59,130,246,0.14);
+  color: #bfdbfe;
+}
+
+[data-theme='dark'] .form-builder-filter-card,
+[data-theme='dark'] .form-config-card,
+[data-theme='dark'] .question-card,
+[data-theme='dark'] .admin-detail-page .detail-summary-card,
+[data-theme='dark'] .admin-detail-page .detail-purpose,
+[data-theme='dark'] .admin-detail-page .detail-block,
+[data-theme='dark'] .admin-detail-page .matching-review-block {
+  background: rgba(15,23,42,0.86);
+  border-color: rgba(71,85,105,0.58);
+}

@@ -565,9 +565,15 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
                   <h3 className="section-title" style={{ marginBottom: 0 }}>融资方案与产品匹配</h3>
                 <p className="section-subtitle">{hasProducts ? `已生成 ${products.length} 个方案，点击方案查看匹配机构` : '正在加载方案结果'}</p>
                 </div>
+              </div>
+              <div className="matching-toolbar">
                 <button className={`btn-outline btn-sm summary-inline-trigger ${showSummary ? 'is-open' : ''}`} onClick={() => setShowSummary(prev => !prev)}>
-                  {showSummary ? '收起摘要' : '融资摘要'}
+                  {showSummary ? '收起融资摘要' : '查看融资摘要'}
                 </button>
+                <button className="btn-outline btn-sm" onClick={handleGenerateAnalysis} disabled={isBusy || isPlanGenerating || !canGeneratePlan}>
+                  {isPlanGenerating ? '生成中...' : '重新生成'}
+                </button>
+                <button className="btn-text btn-sm" onClick={handleCollapseMatching}>收起结果</button>
               </div>
               {showSummary && (
                 <div className="summary-panel-wrap">
@@ -577,16 +583,6 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
                   </div>
                 </div>
               )}
-              <div className="matching-action-strip">
-                <button className="matching-action-btn summary" onClick={handleGenerateAnalysis} disabled={isBusy || isPlanGenerating || !canGeneratePlan}>
-                  <span>{isPlanGenerating ? '生成中...' : '重新生成方案'}</span>
-                <small>更新匹配</small>
-              </button>
-              <button className="matching-action-btn ghost" onClick={handleCollapseMatching}>
-                <span>收起</span>
-                  <small>隐藏结果</small>
-                </button>
-              </div>
               {hasProducts ? renderProductList() : renderGenerationStatus()}
             </div>
         )}
