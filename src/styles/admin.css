@@ -1671,17 +1671,32 @@
 }
 
 .form-builder-filter-controls {
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) 112px 112px;
+  align-items: end;
+  gap: 12px;
 }
 
-.form-builder-filter-controls .form-builder-select-field,
+.form-builder-filter-controls .form-builder-select-field {
+  min-height: 0;
+}
+
+.form-builder-filter-controls .form-builder-select-field .form-input,
 .form-builder-filter-summary,
 .form-builder-filter-controls > button {
-  min-height: 64px;
+  height: 52px;
+  min-height: 52px;
+  box-sizing: border-box;
 }
 
 .form-builder-filter-summary {
   justify-content: center;
+  align-self: end;
+}
+
+.form-builder-filter-controls > button {
+  align-self: end;
+  width: 100%;
+  padding-inline: 14px;
 }
 
 .form-config-card {
