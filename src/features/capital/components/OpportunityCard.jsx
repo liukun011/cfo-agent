@@ -12,6 +12,8 @@ export default function OpportunityCard({
   onToggleExpanded,
 }) {
   const isPending = request.status === '待确认'
+  const hasMatchRate = request.matchRate !== undefined && request.matchRate !== null && request.matchRate !== ''
+  const matchRateText = hasMatchRate ? `${request.matchRate}%` : '未填写'
 
   return (
     <div className={`capital-request-card ${isPending ? 'is-pending' : 'is-confirmed'}`}>
@@ -39,7 +41,7 @@ export default function OpportunityCard({
           <div><span>覆盖率</span><b>{formatMaybePercent(request.coverageRate) || '未填写'}</b></div>
           <div><span>综合成本</span><b>{request.weightedAvgCost || '未填写'}</b></div>
           <div><span>还款安全</span><b>{request.repaymentSafetyLevel || '未填写'}</b></div>
-          <div><span>匹配度</span><b className="request-score">{request.matchRate}%</b></div>
+          <div><span>匹配度</span><b className={hasMatchRate ? 'request-score' : ''}>{matchRateText}</b></div>
         </div>
         {isExpanded && (
           <div className="request-detail-block">

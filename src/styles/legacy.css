@@ -965,6 +965,7 @@ input, textarea, button { font-family: inherit; }
 .generation-action-ready { border-color: rgba(37,99,235,0.22); background: rgba(37,99,235,0.1); color: #1d4ed8; }
 .generation-action-running { border-color: rgba(245,158,11,0.26); background: rgba(245,158,11,0.12); color: #92400e; }
 .generation-action-done { border-color: rgba(5,150,105,0.22); background: rgba(5,150,105,0.1); color: #047857; }
+.generation-action-failed { border-color: rgba(239,68,68,0.24); background: rgba(239,68,68,0.1); color: #b91c1c; }
 .generation-action-footer { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(148,163,184,0.18); }
 .generation-action-footer .btn-primary,
 .generation-action-footer .btn-outline,

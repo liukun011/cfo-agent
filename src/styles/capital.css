@@ -170,11 +170,11 @@
   }
 
   .tag-form-bottom-save {
-    grid-template-columns: minmax(0, 1fr) 108px;
+    grid-template-columns: 1fr;
   }
 
   .tag-form-bottom-save > button {
-    width: 108px;
+    width: 100%;
   }
 }
 
@@ -207,6 +207,12 @@
   font-size: 17px;
   line-height: 1.35;
   font-weight: 900;
+}
+
+.dashboard-kpis .stat-card {
+  width: 100%;
+  appearance: none;
+  font-family: inherit;
 }
 
 .dynamic-form-fields {

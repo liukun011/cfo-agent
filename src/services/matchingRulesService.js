@@ -66,7 +66,7 @@ export function buildEmptyMatchingRule(question = null) {
   return {
     id: `draft_${Date.now()}`,
     isNew: true,
-    name: '新建匹配规则',
+    name: '新建金融方案规则',
     description: '',
     isActive: true,
     conditions: [

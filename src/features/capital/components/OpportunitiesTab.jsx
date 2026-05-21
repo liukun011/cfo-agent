@@ -31,16 +31,16 @@ export default function OpportunitiesTab({
         </button>
       </div>
       <div className="stats-grid cols-2 dashboard-kpis" style={{ marginBottom: 24 }}>
-        <div className="stat-card" onClick={() => onOpenStat('matched')}>
+        <button type="button" className="stat-card" onClick={() => onOpenStat('matched')}>
           <span className="stat-number">{statistics.matchedCount}</span>
           <span className="stat-label">对接需求</span>
           <span className="stat-action">查看明细</span>
-        </div>
-        <div className="stat-card" onClick={() => onOpenStat('contact')}>
+        </button>
+        <button type="button" className="stat-card" onClick={() => onOpenStat('contact')}>
           <span className="stat-number">{statistics.contactExchangedCount}</span>
           <span className="stat-label">已确认对接</span>
           <span className="stat-action">查看明细</span>
-        </div>
+        </button>
       </div>
       {opportunityErrors?.length > 0 && (
         <div className="inline-error-strip mb-16">

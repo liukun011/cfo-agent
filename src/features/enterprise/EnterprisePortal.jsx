@@ -14,7 +14,6 @@ import {
   buildEnterpriseFields,
   getCoreEnterpriseFields,
   getEnterpriseProducts,
-  getExtraEnterpriseFields,
   hasValue,
 } from './utils/enterpriseFields'
 import { Icons } from '../../shared/components/Icons'
@@ -81,6 +80,12 @@ function getGenerationActionCopy(nextActionState, hasMissingFields) {
       label: '已生成',
       className: 'generation-action-done',
     },
+    failed: {
+      title: '融资方案生成失败',
+      desc: '请稍后重试，或刷新后查看最新结果。',
+      label: '生成失败',
+      className: 'generation-action-failed',
+    },
     idle: {
       title: '等待生成融资方案',
       desc: '完成采集后即可生成融资方案。',
@@ -111,7 +116,6 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
   const [expandedProduct, setExpandedProduct] = useState(null)
   const [showMatching, setShowMatching] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
-  const [showFullEnterpriseInfo, setShowFullEnterpriseInfo] = useState(false)
   const [expandedEnterpriseText, setExpandedEnterpriseText] = useState({})
   const [expandedInvestorReasons, setExpandedInvestorReasons] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -126,11 +130,12 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
   const missingFields = enterprise?.missingFields || []
   const hasMissingFields = missingFields.length > 0
   const coreEnterpriseFields = getCoreEnterpriseFields(enterpriseFields)
-  const extraEnterpriseFields = getExtraEnterpriseFields(enterpriseFields)
   const canGeneratePlan = enterprise && !isSupplementChecking && !isRemotePlanRunning
   const isPlanGenerating = isRemotePlanRunning || isGenerating || Boolean(analysisPolling) || ['submitting', 'polling', 'background'].includes(generationPhase)
   const canShowMatching = showMatching && (hasGeneratedPlan || hasProducts)
-  const nextActionState = getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan })
+  const nextActionState = generationPhase === 'failed'
+    ? 'failed'
+    : getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan })
   const generationAction = getGenerationActionCopy(nextActionState, hasMissingFields)
   const planStepClass = isPlanGenerating ? 'active' : hasGeneratedPlan ? 'done' : canGeneratePlan ? 'active' : ''
   const planStepLabel = isPlanGenerating ? '生成中' : hasGeneratedPlan ? '方案完成' : '生成方案'
@@ -176,7 +181,6 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
 
   useEffect(() => {
     matchingCollapsedRef.current = false
-    setShowFullEnterpriseInfo(false)
     setExpandedEnterpriseText({})
     setExpandedInvestorReasons({})
     setExpandedProduct(null)
@@ -267,11 +271,10 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     setPhase('leadForm')
   }
 
-  const beginChat = useCallback(() => {
-    if (isBusy) return
+  const startChatSession = useCallback(() => {
     if (questions.length === 0) {
       showToast('对话题库还没有加载到，请稍后再试', 'error')
-      return
+      return false
     }
     setPhase('chatting')
     setChatLog([
@@ -282,7 +285,13 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     setInputText('')
     setIsAnswering(false)
     answerLockRef.current = false
-  }, [isBusy, questions, showToast])
+    return true
+  }, [questions, showToast])
+
+  const beginChat = useCallback(() => {
+    if (isBusy) return
+    startChatSession()
+  }, [isBusy, startChatSession])
 
   const handleLeadSubmit = async values => {
     if (isSubmitting) return
@@ -294,7 +303,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     try {
       const savedEnterprise = await saveEnterprise(buildEnterpriseLeadPayload(values), dispatch)
       setEnterprise(savedEnterprise)
-      beginChat()
+      startChatSession()
     } catch (e) {
       console.log('企业基础信息保存失败', e)
       showToast('基础信息保存失败，请稍后重试', 'error')
@@ -518,12 +527,9 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
 
       <EnterpriseInfoSection
         coreEnterpriseFields={coreEnterpriseFields}
-        extraEnterpriseFields={extraEnterpriseFields}
-        showFullEnterpriseInfo={showFullEnterpriseInfo}
         isBusy={isBusy}
         renderEnterpriseFieldValue={renderEnterpriseFieldValue}
         onRestartChat={openLeadForm}
-        onToggleFullEnterpriseInfo={() => setShowFullEnterpriseInfo(prev => !prev)}
       />
 
       <section className="section panel-section" ref={generationSectionRef}>
@@ -548,7 +554,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
                 onClick={handleGenerateAnalysis}
                 disabled={isBusy || !canGeneratePlan || isPlanGenerating}
               >
-                {isPlanGenerating ? '正在生成方案...' : hasGeneratedPlan ? '重新生成' : '生成融资方案'}
+                {isPlanGenerating ? '正在生成方案...' : generationPhase === 'failed' ? '重新生成融资方案' : hasGeneratedPlan ? '重新生成' : '生成融资方案'}
               </button>
             </div>
           </div>

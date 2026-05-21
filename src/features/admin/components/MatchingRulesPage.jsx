@@ -29,6 +29,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [deletingId, setDeletingId] = useState('')
+  const [hasDraftChanges, setHasDraftChanges] = useState(false)
 
   useEffect(() => {
     loadRules(appliedFilter)
@@ -69,7 +70,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
       setOpenCategories(Object.fromEntries((data.fundingSources || []).map(category => [category.id, true])))
       if (!activeRuleId) setActiveRuleId(data.rules?.[0]?.id || '')
     } catch {
-      onError?.('匹配规则加载失败，请稍后重试')
+      onError?.('金融方案规则加载失败，请稍后重试')
     } finally {
       setIsLoading(false)
     }
@@ -85,9 +86,10 @@ export default function MatchingRulesPage({ onSaved, onError }) {
       const normalizedDetail = normalizeRuleForEditor(detail, questions, fundingSources)
       setActiveRuleId(normalizedDetail.id)
       setDraftRule({ ...normalizedDetail, isNew: false })
+      setHasDraftChanges(false)
       setMode('editor')
     } catch {
-      onError?.('匹配规则详情加载失败，请稍后重试')
+      onError?.('金融方案规则详情加载失败，请稍后重试')
     } finally {
       setIsDetailLoading(false)
     }
@@ -99,26 +101,28 @@ export default function MatchingRulesPage({ onSaved, onError }) {
     setDraftRule(next)
     setIsChannelPanelOpen(false)
     setChannelSearch('')
+    setHasDraftChanges(false)
     setMode('editor')
   }
 
   const deleteRule = async ruleId => {
     if (!ruleId || deletingId) return
-    if (typeof window !== 'undefined' && !window.confirm('确认删除这条匹配规则？')) return
+    if (typeof window !== 'undefined' && !window.confirm('确认删除这条金融方案规则？')) return
     setDeletingId(ruleId)
     try {
       await removeMatchingRule(ruleId)
-      onSaved?.('匹配规则已删除')
+      onSaved?.('金融方案规则已删除')
       if (activeRuleId === ruleId) setActiveRuleId('')
       await loadRules(appliedFilter)
     } catch {
-      onError?.('匹配规则删除失败，请稍后重试')
+      onError?.('金融方案规则删除失败，请稍后重试')
     } finally {
       setDeletingId('')
     }
   }
 
   const updateActiveRule = patch => {
+    setHasDraftChanges(true)
     setDraftRule(prev => ({ ...(prev || activeRule || {}), ...patch }))
   }
 
@@ -171,11 +175,11 @@ export default function MatchingRulesPage({ onSaved, onError }) {
       return
     }
     if (!(activeRule.conditions || []).some(item => item.field && item.value && questionIds.has(item.field))) {
-      onError?.('请至少填写一条匹配条件')
+      onError?.('请至少填写一条适用条件')
       return
     }
     if (!(activeRule.targets || []).some(item => item.code && channelIds.has(item.code))) {
-      onError?.('请至少选择一个资金通道')
+      onError?.('请至少选择一个方案通道')
       return
     }
     setIsSaving(true)
@@ -185,14 +189,15 @@ export default function MatchingRulesPage({ onSaved, onError }) {
         conditions: (activeRule.conditions || []).filter(item => item.field && item.value && questionIds.has(item.field)),
         targets: (activeRule.targets || []).filter(item => item.code && channelIds.has(item.code)),
       })
-      onSaved?.('匹配规则已保存')
+      onSaved?.('金融方案规则已保存')
+      setHasDraftChanges(false)
       setMode('list')
       setDraftRule(null)
       setIsChannelPanelOpen(false)
       setChannelSearch('')
       await loadRules(appliedFilter)
     } catch {
-      onError?.('匹配规则保存失败，请稍后重试')
+      onError?.('金融方案规则保存失败，请稍后重试')
     } finally {
       setIsSaving(false)
     }
@@ -206,14 +211,16 @@ export default function MatchingRulesPage({ onSaved, onError }) {
   }
 
   const closeEditor = () => {
+    if (hasDraftChanges && typeof window !== 'undefined' && !window.confirm('当前规则还未保存，确认返回列表？')) return
     setMode('list')
     setDraftRule(null)
     setIsChannelPanelOpen(false)
     setChannelSearch('')
+    setHasDraftChanges(false)
   }
 
   if (isLoading) {
-    return <div className="page-content"><div className="inline-loading"><span className="spinner" />正在加载匹配规则...</div></div>
+    return <div className="page-content"><div className="inline-loading"><span className="spinner" />正在加载金融方案规则...</div></div>
   }
 
   if (mode === 'editor' && activeRule) {
@@ -228,32 +235,32 @@ export default function MatchingRulesPage({ onSaved, onError }) {
         </div>
 
         <div className="matching-editor-summary">
-          <div><span>匹配条件</span><strong>{activeRule.conditions?.length || 0}</strong></div>
-            <div><span>资金通道</span><strong>{activeRule.targets?.length || 0}</strong></div>
+          <div><span>适用条件</span><strong>{activeRule.conditions?.length || 0}</strong></div>
+            <div><span>方案通道</span><strong>{activeRule.targets?.length || 0}</strong></div>
           <div><span>状态</span><strong>{activeRule.isActive ? '启用' : '停用'}</strong></div>
         </div>
 
         <section className="matching-rule-editor-card">
           <div className="matching-rule-section-head">
-            <div><strong>基础信息</strong><p>设置规则名称、状态和适用场景。</p></div>
+            <div><strong>基础信息</strong><p>设置方案规则名称、状态和适用场景。</p></div>
           </div>
           <label className="matching-rule-field">
             <span>规则名称</span>
-            <input className="form-input" value={activeRule.name || ''} onChange={event => updateActiveRule({ name: event.target.value })} placeholder="请输入规则名称" />
+            <input className="form-input" value={activeRule.name || ''} onChange={event => updateActiveRule({ name: event.target.value })} placeholder="请输入金融方案规则名称" />
           </label>
           <label className="matching-rule-field">
             <span>场景描述</span>
             <textarea className="form-input" value={activeRule.description || ''} onChange={event => updateActiveRule({ description: event.target.value })} placeholder="请输入适用场景" rows={4} />
           </label>
           <label className="matching-rule-switch">
-            <div><strong>启用规则</strong><p>停用后规则暂不参与匹配。</p></div>
+            <div><strong>启用规则</strong><p>停用后暂不参与金融方案推荐。</p></div>
             <input type="checkbox" checked={Boolean(activeRule.isActive)} onChange={event => updateActiveRule({ isActive: event.target.checked })} />
           </label>
         </section>
 
         <section className="matching-rule-editor-card">
           <div className="matching-rule-section-head">
-            <div><strong>匹配条件</strong><p>条件之间全部满足，关键词之间任一命中。</p></div>
+            <div><strong>适用条件</strong><p>条件之间全部满足，关键词之间任一命中。</p></div>
           </div>
           <div className="matching-condition-list">
             {(activeRule.conditions || []).map((condition, index) => (
@@ -283,7 +290,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
 
         <section className="matching-rule-editor-card">
           <div className="matching-rule-section-head">
-            <div><strong>资金通道</strong><p>按顺序决定优先级。</p></div>
+            <div><strong>方案通道</strong><p>按顺序决定推荐优先级。</p></div>
             <button className="btn-primary btn-sm" onClick={() => setIsChannelPanelOpen(true)}>添加通道</button>
           </div>
           {(activeRule.targets || []).length > 0 ? (
@@ -301,7 +308,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
               ))}
             </div>
           ) : (
-            <div className="builder-empty-field">暂无资金通道，请先添加。</div>
+            <div className="builder-empty-field">暂无方案通道，请先添加。</div>
           )}
         </section>
 
@@ -309,7 +316,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
           <section className="matching-channel-panel">
             <div className="matching-channel-panel-head">
               <div>
-                <strong>添加资金通道</strong>
+            <strong>添加方案通道</strong>
                 <p>已选择 {activeRule.targets?.length || 0} 个，可连续添加。</p>
               </div>
               <button className="btn-primary btn-sm" onClick={() => setIsChannelPanelOpen(false)}>完成</button>
@@ -344,7 +351,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
                 </div>
               ))}
               {filteredFundingSources.length === 0 && (
-                <div className="builder-empty-field">没有找到匹配的资金通道。</div>
+                <div className="builder-empty-field">没有找到可添加的方案通道。</div>
               )}
             </div>
           </section>
@@ -362,11 +369,11 @@ export default function MatchingRulesPage({ onSaved, onError }) {
     <div className="page-content matching-rules-page">
       <div className="matching-rules-hero">
         <div>
-          <span className="form-builder-kicker">规则中心</span>
-          <h2 className="page-heading">匹配规则</h2>
-          <p className="page-subtitle">维护融资需求与资金通道的匹配规则。</p>
+          <span className="form-builder-kicker">方案规则</span>
+          <h2 className="page-heading">金融方案规则</h2>
+          <p className="page-subtitle">配置不同融资场景适用的金融方案与通道优先级。</p>
         </div>
-        <button className="btn-primary btn-sm" onClick={addRule}>新增规则</button>
+        <button className="btn-primary btn-sm" onClick={addRule}>新增方案规则</button>
       </div>
 
       <div className="form-builder-stats">
@@ -376,7 +383,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
 
       <section className="matching-rule-editor-card matching-rule-filter-card is-basic">
         <div className="matching-filter-title">
-          <strong>查询规则</strong>
+          <strong>查询方案规则</strong>
           <span>按规则名称快速查找</span>
         </div>
         <div className="matching-filter-quick">
@@ -423,9 +430,9 @@ export default function MatchingRulesPage({ onSaved, onError }) {
         ))}
         {rules.length === 0 && (
           <div className="smart-empty">
-            <strong>暂无匹配规则</strong>
-            <p>新增规则后，可以配置匹配条件和资金通道。</p>
-            <button className="btn-primary btn-sm" onClick={addRule}>新增规则</button>
+            <strong>暂无金融方案规则</strong>
+            <p>新增后，可以配置适用条件和方案通道。</p>
+            <button className="btn-primary btn-sm" onClick={addRule}>新增方案规则</button>
           </div>
         )}
       </section>

@@ -338,7 +338,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
           />
         )}
 
-        {/* ===== 匹配规则 ===== */}
+        {/* ===== 金融方案规则 ===== */}
         {page === 'matchingRules' && (
           <MatchingRulesPage
             onSaved={message => showToast(message)}
@@ -354,7 +354,7 @@ export default function AdminPortal({ onLogout, theme, setTheme }) {
             <button className={`admin-nav-item ${page === 'dashboard' ? 'active' : ''}`} onClick={() => setPage('dashboard')}>{Icons.briefcase}<span>企业需求</span></button>
             <button className={`admin-nav-item ${page === 'questions' ? 'active' : ''}`} onClick={() => setPage('questions')}>{Icons.tag}<span>问答题库</span></button>
             <button className={`admin-nav-item ${page === 'forms' ? 'active' : ''}`} onClick={() => setPage('forms')}>{Icons.files}<span>表单配置</span></button>
-            <button className={`admin-nav-item ${page === 'matchingRules' ? 'active' : ''}`} onClick={() => setPage('matchingRules')}>{Icons.shield}<span>匹配规则</span></button>
+            <button className={`admin-nav-item ${page === 'matchingRules' ? 'active' : ''}`} onClick={() => setPage('matchingRules')}>{Icons.shield}<span>方案规则</span></button>
           </div>
         </nav>
       )}

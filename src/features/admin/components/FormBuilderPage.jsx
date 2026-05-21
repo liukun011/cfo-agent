@@ -147,6 +147,7 @@ export default function FormBuilderPage({ onSaved, onError }) {
 
   const deleteSchema = async formId => {
     if (!formId || deletingId) return
+    if (typeof window !== 'undefined' && !window.confirm('确认删除这份表单配置？删除后资金方将无法继续使用该配置。')) return
     setDeletingId(formId)
     try {
       await deleteAdminFormSchemaConfig(formId)
