@@ -7,8 +7,8 @@ export default function GenerationStatus({
   if (!isPlanGenerating && generationPhase !== 'failed') {
     return (
       <div className="generation-status idle">
-        <div className="generation-status-title">{hasGeneratedPlan ? '正在加载融资方案' : '尚未生成融资方案'}</div>
-        <p>{hasGeneratedPlan ? '正在获取方案明细。' : '当前资料可生成方案，补充更多信息可提升匹配准确度。'}</p>
+        <div className="generation-status-title">{hasGeneratedPlan ? '正在加载融资产品' : '尚未生成融资产品'}</div>
+        <p>{hasGeneratedPlan ? '正在获取产品明细。' : '当前资料可生成融资产品，补充更多信息可提升匹配准确度。'}</p>
       </div>
     )
   }
@@ -26,8 +26,8 @@ export default function GenerationStatus({
       <div className="generation-status-head">
         {generationPhase === 'failed' ? <span className="generation-status-mark failed">!</span> : <span className="spinner" />}
         <div>
-          <div className="generation-status-title">{generationPhase === 'failed' ? '融资方案生成失败' : '融资方案生成中'}</div>
-          <p>{generationMessage || '正在生成融资方案，请稍候。'}</p>
+          <div className="generation-status-title">{generationPhase === 'failed' ? '融资产品生成失败' : '融资产品生成中'}</div>
+          <p>{generationMessage || '正在生成融资产品，请稍候。'}</p>
         </div>
       </div>
       {generationPhase !== 'failed' && (

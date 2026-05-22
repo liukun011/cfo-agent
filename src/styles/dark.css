@@ -170,6 +170,7 @@
 }
 
 [data-theme='dark'] .product-title-toggle,
+[data-theme='dark'] .enterprise-portal .product-investor-toggle.has-results,
 [data-theme='dark'] .summary-inline-trigger,
 [data-theme='dark'] .question-name-display {
   background: rgba(59,130,246,0.14);

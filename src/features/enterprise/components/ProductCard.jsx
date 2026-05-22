@@ -16,107 +16,97 @@ export default function ProductCard({
   onInitiateContact,
   onMatchInvestors,
 }) {
-  const summaryMetaItems = [
-    { label: '融资额度', value: product.amount },
+  const matchedInvestors = product.matchedInvestors || []
+  const hasVisibleValue = (value) => {
+    const text = String(value || '').trim()
+    return Boolean(text && !['待补充', 'null', 'undefined', '-'].includes(text.toLowerCase()))
+  }
+  const compactMetaItems = [
+    { label: '产品额度', value: product.amount },
     { label: '融资期限', value: product.term },
-    { label: '资金方', value: product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '待匹配' },
-  ]
-  const detailMetaItems = [
     { label: '需求占比', value: product.ratioOfTotal },
     { label: '还款方式', value: product.repaymentMethod },
+    { label: '匹配策略', value: product.policyName, wide: true },
     { label: '资金用途', value: product.purpose, wide: true },
     { label: '增信方案', value: product.enhancementNote, wide: true },
-  ]
+  ].filter(item => hasVisibleValue(item.value))
+  const investorActionLabel = matchedInvestors.length
+    ? (isExpanded ? '收起资金方' : '查看资金方')
+    : '匹配资金方'
 
-  const handleHeaderKeyDown = (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
+  const handleInvestorAction = () => {
+    if (matchedInvestors.length) {
       onToggleExpanded()
+      return
     }
+    onMatchInvestors()
   }
 
   return (
     <div className={`product-card ${isExpanded ? 'expanded' : ''}`}>
-      <div
-        className="product-card-header product-card-trigger"
-        role="button"
-        tabIndex={0}
-        aria-expanded={isExpanded}
-        onClick={onToggleExpanded}
-        onKeyDown={handleHeaderKeyDown}
-      >
+      <div className="product-card-header product-card-overview">
         <div className="product-card-top">
           <div className="product-info">
             <div className="product-name">{product.name}</div>
             <div className="product-tag-row">
               <span className="product-tag">{product.tag}</span>
-              {product.matchedInvestors.length > 0 && <span className="product-tag muted">{product.matchedInvestors.length} 家资金方</span>}
             </div>
           </div>
           <div className="product-side">
             <div className="product-score"><span className="score-number">{product.score}</span><span className="score-unit">分</span></div>
-            <span className={`product-title-toggle ${isExpanded ? 'is-open' : ''}`}>
-              <span>{isExpanded ? '收起详情' : '查看详情'}</span>
-              {Icons.chevronDown}
-            </span>
+            <button
+              type="button"
+              className={`product-investor-toggle ${matchedInvestors.length ? 'has-results' : 'needs-match'} ${isExpanded ? 'is-open' : ''}`}
+              aria-expanded={matchedInvestors.length ? isExpanded : undefined}
+              onClick={handleInvestorAction}
+              disabled={isMatchingInvestors || (!matchedInvestors.length && !product.pathMatchResultId)}
+            >
+              <span>{isMatchingInvestors ? '匹配中...' : investorActionLabel}</span>
+              {matchedInvestors.length > 0 && Icons.chevronDown}
+            </button>
           </div>
         </div>
-        <div className="product-meta-grid product-meta-grid-summary product-summary-metrics">
-          {summaryMetaItems.map(item => (
-            <div key={item.label} className={`product-meta-item ${item.wide ? 'wide' : ''}`}>
-              <span>{item.label}</span>
-              <strong>{item.value || '待补充'}</strong>
-            </div>
-          ))}
-        </div>
       </div>
-      {isExpanded && (
-        <div className="product-detail">
-          <div className="product-meta-grid product-meta-grid-detail">
-            {detailMetaItems.map(item => (
+      <div className="product-detail product-card-body">
+        {compactMetaItems.length > 0 && (
+          <div className="product-meta-grid product-meta-grid-detail product-meta-grid-compact">
+            {compactMetaItems.map(item => (
               <div key={item.label} className={`product-meta-item ${item.wide ? 'wide' : ''}`}>
                 <span>{item.label}</span>
-                <strong>{item.value || '待补充'}</strong>
+                <strong>{item.value}</strong>
               </div>
             ))}
           </div>
-          <div className="product-detail-grid">
+        )}
+        <div className="product-detail-grid">
+          {hasVisibleValue(product.riskNotes) && (
             <div className="detail-section detail-panel">
               <h5>风险点说明</h5>
-              <p>{product.riskNotes || '暂无风险点说明'}</p>
+              <p>{product.riskNotes}</p>
             </div>
-            {product.matchGapNote && (
-              <div className="detail-section detail-panel">
-                <h5>补充说明</h5>
-                <p>{product.matchGapNote}</p>
-              </div>
-            )}
-          </div>
+          )}
+          {hasVisibleValue(product.matchGapNote) && (
+            <div className="detail-section detail-panel">
+              <h5>补充说明</h5>
+              <p>{product.matchGapNote}</p>
+            </div>
+          )}
+        </div>
+        {isExpanded && matchedInvestors.length > 0 && (
           <div className="detail-section investor-match-section">
             <div className="investor-section-head">
               <h5>匹配资金方</h5>
               <div className="investor-section-actions">
-                <span>{product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '尚未匹配'}</span>
                 <button
-                  className={product.matchedInvestors.length ? 'btn-outline btn-sm' : 'btn-primary btn-sm'}
+                  className="btn-outline btn-sm"
                   onClick={onMatchInvestors}
                   disabled={isMatchingInvestors || !product.pathMatchResultId}
                 >
-                  {isMatchingInvestors ? '匹配中...' : product.matchedInvestors.length ? '重新匹配' : '匹配资金方'}
+                  {isMatchingInvestors ? '匹配中...' : '重新匹配'}
                 </button>
               </div>
             </div>
-            {product.matchedInvestors.length === 0 && (
-              <div className="investor-empty">
-                <strong>{isMatchingInvestors ? '正在匹配该方案下的资金方' : '暂未匹配到资金方'}</strong>
-                <p>
-                  {isMatchingInvestors
-                    ? '匹配完成后，可在这里查看可对接的资金方。'
-                    : product.matchGapNote || '点击上方按钮继续匹配该方案下的资金方。'}
-                </p>
-              </div>
-            )}
-            {product.matchedInvestors.map((investor) => {
+            {matchedInvestors.map((investor) => {
               const reasonKey = `${product.id}-${investor.id}-reason`
               return (
                 <InvestorMatchCard
@@ -135,8 +125,8 @@ export default function ProductCard({
               )
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
