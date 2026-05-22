@@ -15,7 +15,7 @@ export default function InvestorMatchCard({
   const contactKey = `${productId}-${investor.id}`
   const reasonText = investor.matchReason || '暂无匹配原因'
   const isReasonLong = reasonText.length > 92
-  const canClickInvestor = canInitiateContact(investor)
+  const canClickInvestor = canInitiateContact(investor) && Number(investor.matchRate || 0) > 0 && Boolean(investor.investorIdCode || investor.id)
   const contactText = [investor.contactPerson, investor.contactPhone]
     .map(value => String(value || '').trim())
     .filter(Boolean)

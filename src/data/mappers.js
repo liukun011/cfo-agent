@@ -273,7 +273,8 @@ export function mapAnalysisToProducts(data) {
   const plan = data?.combination_plan
   if (!plan || !plan.routes) return []
   return plan.routes.map(route => {
-    const matchedInvestors = pick(route, 'matchedInvestors', 'matched_investors') || []
+    const matchedInvestors = (pick(route, 'matchedInvestors', 'matched_investors') || [])
+      .filter(isMatchedLegacyInvestor)
     const productType = pick(route, 'productType', 'product_type') || ''
     const priorityLevel = pick(route, 'priorityLevel', 'priority_level') || ''
     const amountWan = pick(route, 'amountWan', 'amount_wan') || 0
@@ -283,6 +284,7 @@ export function mapAnalysisToProducts(data) {
       taskId: pick(route, 'taskId', 'task_id') || plan.taskId || plan.task_id,
       name: pick(route, 'routeName', 'route_name') || '',
       tag: `${productType} · ${priorityLevel}`,
+      policyName: pick(route, 'policyName', 'policy_name') || '',
       amount: `${amountWan} 万`,
       ratioOfTotal: pick(route, 'ratioOfTotal', 'ratio_of_total') || '',
       term: pick(route, 'term', 'financingTerm', 'financing_term') || '',
@@ -324,6 +326,8 @@ function mapPathMatchResultsToProducts(results = []) {
     .sort((a, b) => Number(pick(a, 'rankNo', 'rank_no') || 0) - Number(pick(b, 'rankNo', 'rank_no') || 0))
     .map((route, index) => {
       const investors = pick(route, 'investors') || []
+      const matchedInvestors = investors.filter(isMatchedPathInvestor)
+      const noMatchInvestor = investors.find(inv => !isMatchedPathInvestor(inv))
       const endpointName = pick(route, 'endpointName', 'endpoint_name') || ''
       const endpointCode = pick(route, 'endpointCode', 'endpoint_code') || ''
       const routeRole = formatRouteRole(pick(route, 'routeRole', 'route_role'))
@@ -334,8 +338,9 @@ function mapPathMatchResultsToProducts(results = []) {
         pathMatchResultId: pick(route, 'id') || '',
         taskId: pick(route, 'taskId', 'task_id') || '',
         endpointCode,
-        name: endpointName || '金融方案',
-        tag: [routeRole, matchLevel].filter(Boolean).join(' · ') || pick(route, 'policyName', 'policy_name') || '金融方案',
+        name: endpointName || '融资产品',
+        tag: [routeRole, matchLevel].filter(Boolean).join(' · ') || pick(route, 'policyName', 'policy_name') || '融资产品',
+        policyName: pick(route, 'policyName', 'policy_name') || '',
         amount: amountWan ? `${amountWan} 万` : '',
         totalDemandWan: pick(route, 'totalDemandWan', 'total_demand_wan') || '',
         ratioOfTotal: pick(route, 'allocatedRatio', 'allocated_ratio') || '',
@@ -350,11 +355,36 @@ function mapPathMatchResultsToProducts(results = []) {
         matchReason: pick(route, 'matchReason', 'match_reason') || '',
         amountCheckNote: pick(route, 'amountCheckNote', 'amount_check_note') || '',
         enhancementNote: pick(route, 'enhancementNote', 'enhancement_note') || '',
-        matchGapNote: pick(route, 'requiredSupplementInvestorType', 'required_supplement_investor_type') || '',
-        matchedInvestors: investors.map(inv => mapPathInvestor(inv, route)),
+        matchGapNote: pick(route, 'requiredSupplementInvestorType', 'required_supplement_investor_type')
+          || pick(noMatchInvestor, 'requiredSupplementInvestorType', 'required_supplement_investor_type', 'matchRisk', 'match_risk')
+          || '',
+        matchedInvestors: matchedInvestors.map(inv => mapPathInvestor(inv, route)),
         raw: route,
       }
     })
+}
+
+function isMatchedPathInvestor(inv) {
+  const matchStatus = String(pick(inv, 'matchStatus', 'match_status') || '').trim().toUpperCase()
+  const score = parseScore(pick(inv, 'matchScore', 'match_score'))
+  const hasConcreteInvestor = Boolean(
+    pick(inv, 'investorIdCode', 'investor_id_code', 'investor_id')
+    && pick(inv, 'investorName', 'investor_name'),
+  )
+
+  if (matchStatus) return matchStatus === 'MATCHED' && hasConcreteInvestor && score > 0
+
+  // Older result rows may omit matchStatus. Only render rows that still identify a real investor.
+  return hasConcreteInvestor && score > 0
+}
+
+function isMatchedLegacyInvestor(inv) {
+  const score = parseScore(pick(inv, 'matchScore', 'match_score'))
+  const hasConcreteInvestor = Boolean(
+    pick(inv, 'investorIdCode', 'investor_id_code', 'investor_id')
+    && pick(inv, 'investorName', 'investor_name'),
+  )
+  return hasConcreteInvestor && score > 0
 }
 
 function mapPathInvestor(inv, route) {

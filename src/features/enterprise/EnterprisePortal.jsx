@@ -50,7 +50,15 @@ function getInvestorStatusText(status) {
 function hasResolutionInvestorResults(analysis, pathMatchResultId) {
   if (!pathMatchResultId || !Array.isArray(analysis)) return false
   const selectedPath = analysis.find(route => String(route?.id || '') === String(pathMatchResultId))
-  return Array.isArray(selectedPath?.investors) && selectedPath.investors.length > 0
+  return Array.isArray(selectedPath?.investors) && selectedPath.investors.some(investor => {
+    const status = String(investor?.matchStatus || investor?.match_status || '').trim().toUpperCase()
+    const score = Number.parseInt(investor?.matchScore ?? investor?.match_score ?? 0, 10) || 0
+    const hasInvestor = Boolean(
+      (investor?.investorIdCode || investor?.investor_id_code || investor?.investor_id)
+      && (investor?.investorName || investor?.investor_name),
+    )
+    return hasInvestor && score > 0 && (!status || status === 'MATCHED')
+  })
 }
 
 function getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan }) {
@@ -70,32 +78,32 @@ function getGenerationActionCopy(nextActionState, hasMissingFields) {
       className: 'generation-action-running',
     },
     ready: {
-      title: '可生成融资方案',
-      desc: '确认资料无误后，点击生成融资方案。',
+      title: '可生成融资产品',
+      desc: '确认资料无误后，点击生成融资产品。',
       label: '可生成',
       className: 'generation-action-ready',
     },
     generating: {
-      title: '融资方案生成中',
-      desc: '正在生成方案，请稍候。',
+      title: '融资产品生成中',
+      desc: '正在生成产品，请稍候。',
       label: '生成中',
       className: 'generation-action-running',
     },
     generated: {
-      title: '融资方案已生成',
-      desc: '可查看融资方案和匹配机构，并选择发起对接。',
+      title: '融资产品已生成',
+      desc: '可查看融资产品和匹配机构，并选择发起对接。',
       label: '已生成',
       className: 'generation-action-done',
     },
     failed: {
-      title: '融资方案生成失败',
+      title: '融资产品生成失败',
       desc: '请稍后重试，或刷新后查看最新结果。',
       label: '生成失败',
       className: 'generation-action-failed',
     },
     idle: {
-      title: '等待生成融资方案',
-      desc: '完成采集后即可生成融资方案。',
+      title: '等待生成融资产品',
+      desc: '完成采集后即可生成融资产品。',
       label: '待生成',
       className: '',
     },
@@ -148,7 +156,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     : getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan })
   const generationAction = getGenerationActionCopy(nextActionState, hasMissingFields)
   const planStepClass = isPlanGenerating ? 'active' : hasGeneratedPlan ? 'done' : canGeneratePlan ? 'active' : ''
-  const planStepLabel = isPlanGenerating ? '生成中' : hasGeneratedPlan ? '方案完成' : '生成方案'
+  const planStepLabel = isPlanGenerating ? '生成中' : hasGeneratedPlan ? '产品完成' : '生成产品'
   const [toast, setToast] = useState(null)
   const chatEndRef = useRef(null)
   const chatInputRef = useRef(null)
@@ -200,7 +208,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
   useEffect(() => {
     if (!enterprise?.id || analysisTaskStatus !== 'RUNNING' || analysisPolling) return
     setGenerationPhase('polling')
-    setGenerationMessage('融资方案生成中，请稍候。')
+    setGenerationMessage('融资产品生成中，请稍候。')
     setAnalysisPolling({ enterpriseId: enterprise.id, taskId: '' })
   }, [enterprise?.id, analysisTaskStatus, analysisPolling])
 
@@ -246,18 +254,18 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
         if (cancelled) return
         if (analysis) {
           setGenerationPhase('ready')
-          setGenerationMessage('融资方案已生成。')
+          setGenerationMessage('融资产品已生成。')
           setAnalysisPolling(null)
           setIsGenerating(false)
           setEnterprise(prev => prev ? { ...prev, analysisTaskStatus: 'SUCCESS' } : prev)
           setShowMatching(true)
           setShowSummary(false)
-          showToast('融资方案已生成', 'success')
+          showToast('融资产品已生成', 'success')
           return
         }
         if (taskStatus === 'FAILED') {
           setGenerationPhase('failed')
-          setGenerationMessage('方案生成失败，请稍后重试。')
+          setGenerationMessage('融资产品生成失败，请稍后重试。')
           setAnalysisPolling(null)
           setIsGenerating(false)
         }
@@ -335,7 +343,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     }
     setPhase('chatting')
     setChatLog([
-      { role: 'agent', text: `您好！我是 CFO-Agent，将协助您完成融资需求采集。请回答以下 ${questions.length} 个问题，我将为您匹配合适的融资方案。` },
+      { role: 'agent', text: `您好！我是 CFO-Agent，将协助您完成融资需求采集。请回答以下 ${questions.length} 个问题，我将为您匹配合适的融资产品。` },
       { role: 'agent', text: `问题 1/${questions.length}：${questions[0].text}` },
     ])
     setChatStep(1)
@@ -415,7 +423,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
       if (detectedEnterprise) {
         setEnterprise(detectedEnterprise)
         if ((detectedEnterprise.missingFields || []).length === 0) {
-          showToast('资料检测完成，可生成融资方案', 'success')
+          showToast('资料检测完成，可生成融资产品', 'success')
         }
       }
     } catch (e) {
@@ -496,23 +504,23 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     setShowSummary(false)
     setExpandedProduct(null)
     setGenerationPhase('submitting')
-    setGenerationMessage('正在生成融资方案...')
+    setGenerationMessage('正在生成融资产品...')
     try {
       const targetEnterprise = enterprise
       dispatch({ type: 'CLEAR_ENTERPRISE_PRODUCTS', payload: targetEnterprise.id })
       const task = await startEnterpriseAnalysis(targetEnterprise.id)
       setGenerationPhase('polling')
-      setGenerationMessage('已开始生成融资方案。')
+      setGenerationMessage('已开始生成融资产品。')
       setAnalysisPolling({
         enterpriseId: targetEnterprise.id,
         taskId: task?.taskId || task?.id || '',
         resultSource: 'stored',
       })
-      showToast('已开始生成融资方案', 'success')
+      showToast('已开始生成融资产品', 'success')
     } catch (e) {
       setGenerationPhase('failed')
-      setGenerationMessage('融资方案生成失败。')
-      showToast('融资方案生成失败，请稍后重试', 'error')
+      setGenerationMessage('融资产品生成失败。')
+      showToast('融资产品生成失败，请稍后重试', 'error')
       setIsGenerating(false)
     } finally {
     }
@@ -526,16 +534,16 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     if (products.length > 0) return
 
     setGenerationPhase('background')
-    setGenerationMessage('正在加载融资方案...')
+    setGenerationMessage('正在加载融资产品...')
     try {
       const { analysis } = await refreshEnterpriseAnalysis(enterprise.id, '', dispatch)
       setGenerationPhase(analysis ? 'ready' : 'background')
-      setGenerationMessage(analysis ? '融资方案已更新。' : '暂未获取到方案明细，请稍后刷新。')
-      if (!analysis) showToast('方案明细暂未返回，请稍后再试', 'error')
+      setGenerationMessage(analysis ? '融资产品已更新。' : '暂未获取到产品明细，请稍后刷新。')
+      if (!analysis) showToast('产品明细暂未返回，请稍后再试', 'error')
     } catch (e) {
       setGenerationPhase('failed')
-      setGenerationMessage('方案明细加载失败。')
-      showToast('方案明细加载失败，请稍后重试', 'error')
+      setGenerationMessage('产品明细加载失败。')
+      showToast('产品明细加载失败，请稍后重试', 'error')
     }
   }
 
@@ -543,7 +551,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     if (!enterprise || analysisPolling || resolutionPolling) return
     try {
       const { analysis } = await refreshEnterpriseAnalysis(enterprise.id, '', dispatch, { preserveProductsOnEmpty: true })
-      showToast(analysis ? '方案状态已刷新' : '暂未获取到新的方案状态', analysis ? 'success' : 'error')
+      showToast(analysis ? '产品状态已刷新' : '暂未获取到新的产品状态', analysis ? 'success' : 'error')
     } catch (e) {
       showToast('状态刷新失败，请稍后重试', 'error')
     }
@@ -632,7 +640,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
             <div className="generation-action-footer">
               {hasGeneratedPlan && (
                 <button className="btn-primary" onClick={handleShowGeneratedAnalysis} disabled={isBusy}>
-                  查看融资方案
+                  查看融资产品
                 </button>
               )}
               <button
@@ -640,7 +648,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
                 onClick={handleGenerateAnalysis}
                 disabled={isBusy || !canGeneratePlan || isPlanGenerating}
               >
-                {isPlanGenerating ? '正在生成方案...' : generationPhase === 'failed' ? '重新生成融资方案' : hasGeneratedPlan ? '重新生成' : '生成融资方案'}
+                {isPlanGenerating ? '正在生成产品...' : generationPhase === 'failed' ? '重新生成融资产品' : hasGeneratedPlan ? '重新生成' : '生成融资产品'}
               </button>
             </div>
           </div>
@@ -649,11 +657,11 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
               <div className="matching-overview">
                 <div className="section-title-row matching-overview-head">
                   <div>
-                    <span className="matching-overview-kicker">方案结果</span>
-                    <h3 className="section-title" style={{ marginBottom: 0 }}>金融方案与资金方匹配</h3>
-                    <p className="section-subtitle">{hasProducts ? `已生成 ${products.length} 个金融方案，选择方案后继续匹配资金方。` : '正在加载方案结果'}</p>
+                    <span className="matching-overview-kicker">产品结果</span>
+                    <h3 className="section-title" style={{ marginBottom: 0 }}>融资产品与资金方匹配</h3>
+                    <p className="section-subtitle">{hasProducts ? `已生成 ${products.length} 个融资产品，选择产品后继续匹配资金方。` : '正在加载产品结果'}</p>
                   </div>
-                  <span className="matching-plan-count">{hasProducts ? `${products.length} 个方案` : '加载中'}</span>
+                  <span className="matching-plan-count">{hasProducts ? `${products.length} 个产品` : '加载中'}</span>
                 </div>
                 <div className="matching-toolbar">
                   <button className={`matching-summary-action ${showSummary ? 'is-open' : ''}`} onClick={() => setShowSummary(prev => !prev)}>

@@ -63,7 +63,7 @@ export function buildEnterpriseLeadPayload(values) {
 }
 
 export function buildSummaryText(enterprise, products) {
-  const recommended = (products || []).slice(0, 2).map(p => `${p.name}（${p.amount}）`).join(' + ') || '方案生成中'
+  const recommended = (products || []).slice(0, 2).map(p => `${p.name}（${p.amount}）`).join(' + ') || '产品生成中'
   return `企业名称：${enterprise?.companyName || ''}\n行业：${enterprise?.industry || ''}\n地区：${enterprise?.region || ''}\n融资金额：${formatWan(enterprise?.financingMin)}\n资金用途：${enterprise?.financingPurpose || ''}\n年营收：${formatWanRange(enterprise?.revenueMin, enterprise?.revenueMax)}\n核心压力：${enterprise?.coreProblems || ''}\n推荐方案：${recommended}`
 }
 
