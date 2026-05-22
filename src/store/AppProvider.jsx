@@ -164,7 +164,7 @@ export function appReducer(state, action) {
         p.id !== productId ? p : {
           ...p,
           matchedInvestors: p.matchedInvestors.map(i =>
-            i.id === investorId ? { ...i, status: '待确认', contactViewStatus: 'PENDING_INVESTOR_CONFIRM' } : i
+            i.id === investorId ? { ...i, status: '待确认', contactViewStatus: 'PENDING_PLATFORM_REVIEW' } : i
           ),
         }
       )

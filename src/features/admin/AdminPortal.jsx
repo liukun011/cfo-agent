@@ -446,7 +446,21 @@ function renderProductReviewSection({ enterpriseId, products, analysisState, onR
               </div>
               <span className="score-number-sm">{product.score}分</span>
             </div>
-            {!hasAnyVisibleInvestors ? (
+            <div className="admin-product-contact-state">
+              <span>方案额度</span>
+              <strong>{formatDisplayValue(product.amount)}</strong>
+            </div>
+            {product.purpose && (
+              <div className="admin-product-contact-state">
+                <span>覆盖用途</span>
+                <strong>{formatDisplayValue(product.purpose)}</strong>
+              </div>
+            )}
+            {product.matchedInvestors.length === 0 ? (
+              <div className="admin-investor-empty compact">
+                <strong>该方案尚未匹配资金方</strong>
+              </div>
+            ) : !hasAnyVisibleInvestors ? (
               <div className="admin-product-contact-state">
                 <span>对接状态</span>
                 <strong>未发起</strong>

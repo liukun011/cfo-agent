@@ -9,23 +9,33 @@ export default function OpportunityCard({
   formatWan,
   formatMaybePercent,
   onConfirm,
+  onReject,
   onToggleExpanded,
 }) {
   const isPending = request.status === '待确认'
   const hasMatchRate = request.matchRate !== undefined && request.matchRate !== null && request.matchRate !== ''
   const matchRateText = hasMatchRate ? `${request.matchRate}%` : '未填写'
+  const routeScoreText = request.routeMatchScore !== undefined && request.routeMatchScore !== null && request.routeMatchScore !== ''
+    ? `${request.routeMatchScore}%`
+    : ''
+  const productText = [request.productName || request.routeName, request.endpointName].filter(Boolean).join(' · ')
+  const arrivalText = request.estimatedArrivalDays !== undefined && request.estimatedArrivalDays !== null && request.estimatedArrivalDays !== ''
+    ? `${request.estimatedArrivalDays} 天`
+    : ''
   const coreMetrics = [
-    { label: '融资总额', value: request.amount || '未填写' },
-    { label: '推荐产品', value: request.routeName || request.product || '未填写' },
-    { label: '方案金额', value: formatWan(request.raw?.amountWan) || '未填写' },
+    { label: '分配额度', value: formatWan(request.allocatedAmountWan) || request.amount || '未填写' },
+    { label: '推荐产品', value: productText || request.product || '未填写' },
+    { label: '建议金额', value: formatWan(request.suggestedAmountWan) || '未填写' },
     { label: '匹配度', value: matchRateText, score: hasMatchRate },
   ]
   const detailMetrics = [
-    { label: '资金用途', value: request.fundPurpose || request.demandType || '未填写' },
-    { label: '资金缺口', value: formatWan(request.fundingGapWan) || '未填写' },
-    { label: '覆盖率', value: formatMaybePercent(request.coverageRate) || '未填写' },
-    { label: '综合成本', value: request.weightedAvgCost || '未填写' },
-    { label: '还款安全', value: request.repaymentSafetyLevel || '未填写' },
+    { label: '额度占比', value: formatMaybePercent(request.allocatedRatio) || '未填写' },
+    { label: '覆盖用途', value: request.fundingPurposeCovered || request.fundPurpose || request.demandType || '未填写' },
+    { label: '路径匹配', value: routeScoreText || '未填写' },
+    { label: '金额适配', value: request.amountFitConclusion || '未填写' },
+    { label: '预估成本', value: request.estimatedCostRange || '未填写' },
+    { label: '预估期限', value: request.estimatedTerm || '未填写' },
+    { label: '到账周期', value: arrivalText || '未填写' },
   ]
 
   return (
@@ -55,9 +65,11 @@ export default function OpportunityCard({
             <div className="request-summary-grid request-summary-grid-detail">
               {detailMetrics.map(item => <div key={item.label}><span>{item.label}</span><b>{item.value}</b></div>)}
             </div>
-            {request.matchReason && <div className="request-row request-reason"><span className="request-label">匹配原因</span><p className="request-text">{request.matchReason}</p></div>}
-            {request.matchRisk && <div className="request-row request-reason"><span className="request-label">风险提示</span><p className="request-text">{request.matchRisk}</p></div>}
-            {request.missingMaterials.length > 0 && <div className="request-row"><span className="request-label">缺失材料</span><span className="request-value missing">{request.missingMaterials.join('、')}</span></div>}
+            {request.routeMatchReason && <div className="request-row request-reason"><span className="request-label">路径原因</span><p className="request-text">{request.routeMatchReason}</p></div>}
+            {request.matchReason && <div className="request-row request-reason"><span className="request-label">产品原因</span><p className="request-text">{request.matchReason}</p></div>}
+            {request.matchRisk && <div className="request-row request-reason"><span className="request-label">匹配风险</span><p className="request-text">{request.matchRisk}</p></div>}
+            {request.riskAdvice && <div className="request-row request-reason"><span className="request-label">风险建议</span><p className="request-text">{request.riskAdvice}</p></div>}
+            {request.requiredMaterials.length > 0 && <div className="request-row"><span className="request-label">所需材料</span><span className="request-value missing">{request.requiredMaterials.join('、')}</span></div>}
           </div>
         )}
       </div>
@@ -69,9 +81,14 @@ export default function OpportunityCard({
       {request.status === '待确认' ? (
         <div className="request-action-bar">
           <span>待确认对接</span>
-          <button className="btn-primary btn-sm" onClick={() => onConfirm(request)} disabled={confirmingRequestId === request.id || isLoading}>
-            {confirmingRequestId === request.id ? '确认中...' : '确认对接'}
-          </button>
+          <div className="request-action-buttons">
+            <button className="btn-outline btn-sm" onClick={() => onReject(request)} disabled={confirmingRequestId === request.id || isLoading}>
+              暂不接收
+            </button>
+            <button className="btn-primary btn-sm" onClick={() => onConfirm(request)} disabled={confirmingRequestId === request.id || isLoading}>
+              {confirmingRequestId === request.id ? '处理中...' : '确认对接'}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="request-action-bar is-muted">

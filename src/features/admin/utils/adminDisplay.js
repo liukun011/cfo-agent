@@ -1,10 +1,5 @@
-import { CONTACT_VIEW_STATUS } from '../../../config/appConfig'
-
 export function getCfoVisibleInvestors(product) {
-  return (product.matchedInvestors || []).filter(inv => {
-    const rawStatus = inv.contactViewStatus || ''
-    return rawStatus && rawStatus !== CONTACT_VIEW_STATUS.NOT_APPLIED && inv.status !== '未发起'
-  })
+  return product.matchedInvestors || []
 }
 
 export function getLatestQuestionSort(questions = []) {
@@ -53,6 +48,7 @@ export function summarizeInvestorContacts(products = []) {
   const counts = new Map([
     ['已确认', 0],
     ['待确认', 0],
+    ['未发起', 0],
     ['待处理', 0],
     ['其他', 0],
   ])

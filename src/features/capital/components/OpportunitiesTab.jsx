@@ -16,6 +16,7 @@ export default function OpportunitiesTab({
   onConfigureLabels,
   onOpenStat,
   onConfirmRequest,
+  onRejectRequest,
   expandedRequestIds,
   onToggleExpandedRequest,
 }) {
@@ -81,6 +82,7 @@ export default function OpportunitiesTab({
               formatWan={formatWan}
               formatMaybePercent={formatMaybePercent}
               onConfirm={onConfirmRequest}
+              onReject={onRejectRequest}
               onToggleExpanded={onToggleExpandedRequest}
             />
           )

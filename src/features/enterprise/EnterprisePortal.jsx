@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store'
-import { updateContactViewStatus } from '../../api'
+import { updatePathMatchContactViewStatus } from '../../api'
 import { CONTACT_VIEW_STATUS, STATUS_COLORS } from '../../config/appConfig'
-import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveEnterprise, startEnterpriseAnalysis, updateEnterpriseAfterChat, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
+import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveEnterprise, startEnterpriseAnalysis, startEnterpriseInvestorResolution, updateEnterpriseAfterChat, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
 import { loadEnterprisePortalData } from '../../services/portalLoaders'
 import {
   buildEnterprisePayload,
@@ -13,6 +13,7 @@ import {
 import {
   buildEnterpriseFields,
   getCoreEnterpriseFields,
+  getExtendedEnterpriseFields,
   getEnterpriseProducts,
   hasValue,
 } from './utils/enterpriseFields'
@@ -44,6 +45,12 @@ function getInvestorStatusText(status) {
   if (status === '已推送' || status === '已确认') return '已确认'
   if (status === '暂不推送' || status === '暂不接收') return '暂不推送'
   return status || '未发起'
+}
+
+function hasResolutionInvestorResults(analysis, pathMatchResultId) {
+  if (!pathMatchResultId || !Array.isArray(analysis)) return false
+  const selectedPath = analysis.find(route => String(route?.id || '') === String(pathMatchResultId))
+  return Array.isArray(selectedPath?.investors) && selectedPath.investors.length > 0
 }
 
 function getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan }) {
@@ -124,12 +131,15 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
   const [generationPhase, setGenerationPhase] = useState('idle')
   const [generationMessage, setGenerationMessage] = useState('')
   const [analysisPolling, setAnalysisPolling] = useState(null)
+  const [resolutionPolling, setResolutionPolling] = useState(null)
+  const [resolutionMatchingKey, setResolutionMatchingKey] = useState('')
   const [contactSubmittingKey, setContactSubmittingKey] = useState('')
   const isSupplementChecking = isCheckingSupplement || importTaskStatus === 'RUNNING'
   const isBusy = isSubmitting || isGenerating || isSupplementChecking || isRemotePlanRunning
   const missingFields = enterprise?.missingFields || []
   const hasMissingFields = missingFields.length > 0
   const coreEnterpriseFields = getCoreEnterpriseFields(enterpriseFields)
+  const extendedEnterpriseFields = getExtendedEnterpriseFields(enterprise)
   const canGeneratePlan = enterprise && !isSupplementChecking && !isRemotePlanRunning
   const isPlanGenerating = isRemotePlanRunning || isGenerating || Boolean(analysisPolling) || ['submitting', 'polling', 'background'].includes(generationPhase)
   const canShowMatching = showMatching && (hasGeneratedPlan || hasProducts)
@@ -266,6 +276,53 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     }
   }, [analysisPolling, dispatch, showToast])
 
+  useEffect(() => {
+    if (!resolutionPolling) return undefined
+    let cancelled = false
+    let attempts = 0
+
+    const pollResolution = async () => {
+      attempts += 1
+      try {
+        const { taskStatus, analysis } = await refreshEnterpriseAnalysis(
+          resolutionPolling.enterpriseId,
+          resolutionPolling.taskId,
+          dispatch,
+        )
+        if (cancelled) return
+        if (hasResolutionInvestorResults(analysis, resolutionPolling.pathMatchResultId)) {
+          setResolutionPolling(null)
+          setResolutionMatchingKey('')
+          setExpandedProduct(resolutionPolling.productId)
+          showToast('资金方匹配结果已更新', 'success')
+          return
+        }
+        if (taskStatus === 'FAILED') {
+          setResolutionPolling(null)
+          setResolutionMatchingKey('')
+          showToast('资金方匹配失败，请稍后重试', 'error')
+          return
+        }
+        if (taskStatus === 'SUCCESS' && attempts > 10) {
+          setResolutionPolling(null)
+          setResolutionMatchingKey('')
+          setExpandedProduct(resolutionPolling.productId)
+          showToast('该方案暂未匹配到可对接资金方，可稍后重新匹配', 'error')
+          return
+        }
+      } catch (e) {
+        if (attempts > 3) showToast('匹配进度同步暂不稳定，请稍后刷新', 'error')
+      }
+    }
+
+    pollResolution()
+    const timer = window.setInterval(pollResolution, 3000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [resolutionPolling, dispatch, showToast])
+
   const openLeadForm = () => {
     if (isBusy) return
     setPhase('leadForm')
@@ -390,17 +447,15 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     const product = products?.find(p => p.id === productId)
     const investor = product?.matchedInvestors.find(i => i.id === investorId)
     const matchId = investor?.matchId || investor?.raw?.id
-    const investorIdCode = investor?.investorIdCode || investor?.id
-    if (!matchId || !investorIdCode) {
-      showToast('缺少匹配记录 ID 或资金方编码，暂不能发起对接', 'error')
+    if (!matchId) {
+      showToast('缺少资金方匹配记录，暂不能发起对接', 'error')
       return
     }
     try {
       setContactSubmittingKey(contactKey)
-      await updateContactViewStatus({
+      await updatePathMatchContactViewStatus({
         id: matchId,
-        investorIdCode,
-        contactViewStatus: CONTACT_VIEW_STATUS.PENDING_INVESTOR_CONFIRM,
+        contactViewStatus: CONTACT_VIEW_STATUS.PENDING_PLATFORM_REVIEW,
       })
       dispatch({ type: 'INITIATE_CONTACT', payload: { enterpriseId: enterprise.id, productId, investorId } })
       showToast(`已向 ${investor?.name || '资金方'} 发起对接，等待资金方确认`, 'success')
@@ -408,6 +463,26 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
       showToast(`对接申请失败：${e.message}`, 'error')
     } finally {
       setContactSubmittingKey('')
+    }
+  }
+
+  const handleMatchInvestors = async (product) => {
+    const pathMatchResultId = product?.pathMatchResultId || product?.id
+    if (!enterprise?.id || !pathMatchResultId || resolutionMatchingKey) return
+    try {
+      setResolutionMatchingKey(product.id)
+      setExpandedProduct(product.id)
+      const task = await startEnterpriseInvestorResolution(pathMatchResultId)
+      setResolutionPolling({
+        enterpriseId: enterprise.id,
+        productId: product.id,
+        pathMatchResultId,
+        taskId: task?.taskId || task?.id || '',
+      })
+      showToast('已开始匹配该方案下的资金方', 'success')
+    } catch (e) {
+      setResolutionMatchingKey('')
+      showToast(`资金方匹配失败：${e.message}`, 'error')
     }
   }
 
@@ -464,6 +539,16 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     }
   }
 
+  const handleRefreshMatchingStatus = async () => {
+    if (!enterprise || analysisPolling || resolutionPolling) return
+    try {
+      const { analysis } = await refreshEnterpriseAnalysis(enterprise.id, '', dispatch, { preserveProductsOnEmpty: true })
+      showToast(analysis ? '方案状态已刷新' : '暂未获取到新的方案状态', analysis ? 'success' : 'error')
+    } catch (e) {
+      showToast('状态刷新失败，请稍后重试', 'error')
+    }
+  }
+
   const handleCopySummary = () => {
     navigator.clipboard.writeText(getSummaryText())
       .then(() => showToast('已复制', 'success'), () => showToast('复制失败', 'error'))
@@ -488,7 +573,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
   const renderEnterpriseFieldValue = (field) => {
     const key = field.id || field.label
     const value = hasValue(field.value) ? String(field.value) : '暂未填写'
-    const isLong = field.long || value.length > 34
+    const isLong = value.length > 34
     const isExpanded = Boolean(expandedEnterpriseText[key])
     return (
       <div className="info-value-wrap">
@@ -527,6 +612,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
 
       <EnterpriseInfoSection
         coreEnterpriseFields={coreEnterpriseFields}
+        extendedEnterpriseFields={extendedEnterpriseFields}
         isBusy={isBusy}
         renderEnterpriseFieldValue={renderEnterpriseFieldValue}
         onRestartChat={openLeadForm}
@@ -560,20 +646,30 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
           </div>
         ) : (
             <div className="matching-section">
-              <div className="section-title-row">
-                <div>
-                  <h3 className="section-title" style={{ marginBottom: 0 }}>融资方案与产品匹配</h3>
-                <p className="section-subtitle">{hasProducts ? `已生成 ${products.length} 个方案，点击方案查看匹配机构` : '正在加载方案结果'}</p>
+              <div className="matching-overview">
+                <div className="section-title-row matching-overview-head">
+                  <div>
+                    <span className="matching-overview-kicker">方案结果</span>
+                    <h3 className="section-title" style={{ marginBottom: 0 }}>金融方案与资金方匹配</h3>
+                    <p className="section-subtitle">{hasProducts ? `已生成 ${products.length} 个金融方案，选择方案后继续匹配资金方。` : '正在加载方案结果'}</p>
+                  </div>
+                  <span className="matching-plan-count">{hasProducts ? `${products.length} 个方案` : '加载中'}</span>
                 </div>
-              </div>
-              <div className="matching-toolbar">
-                <button className={`btn-outline btn-sm summary-inline-trigger ${showSummary ? 'is-open' : ''}`} onClick={() => setShowSummary(prev => !prev)}>
-                  {showSummary ? '收起融资摘要' : '查看融资摘要'}
-                </button>
-                <button className="btn-outline btn-sm" onClick={handleGenerateAnalysis} disabled={isBusy || isPlanGenerating || !canGeneratePlan}>
-                  {isPlanGenerating ? '生成中...' : '重新生成'}
-                </button>
-                <button className="btn-text btn-sm" onClick={handleCollapseMatching}>收起结果</button>
+                <div className="matching-toolbar">
+                  <button className={`matching-summary-action ${showSummary ? 'is-open' : ''}`} onClick={() => setShowSummary(prev => !prev)}>
+                    <span>融资摘要</span>
+                    <strong>{showSummary ? '收起' : '查看'}</strong>
+                  </button>
+                  <div className="matching-toolbar-actions">
+                    <button className="btn-outline btn-sm" onClick={handleRefreshMatchingStatus} disabled={Boolean(analysisPolling || resolutionPolling)}>
+                      刷新状态
+                    </button>
+                    <button className="btn-outline btn-sm" onClick={handleGenerateAnalysis} disabled={isBusy || isPlanGenerating || !canGeneratePlan}>
+                      {isPlanGenerating ? '生成中...' : '重新生成'}
+                    </button>
+                    <button className="btn-text btn-sm" onClick={handleCollapseMatching}>收起</button>
+                  </div>
+                </div>
               </div>
               {showSummary && (
                 <div className="summary-panel-wrap">
@@ -607,6 +703,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
       expandedProduct={expandedProduct}
       expandedInvestorReasons={expandedInvestorReasons}
       contactSubmittingKey={contactSubmittingKey}
+      resolutionMatchingKey={resolutionMatchingKey}
       statusColors={STATUS_COLORS}
       canInitiateContact={canInitiateContact}
       getInvestorStatusText={getInvestorStatusText}
@@ -614,6 +711,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
       onToggleProduct={setExpandedProduct}
       onToggleInvestorReason={toggleInvestorReason}
       onInitiateContact={handleInitiateContact}
+      onMatchInvestors={handleMatchInvestors}
     />
   )
 
