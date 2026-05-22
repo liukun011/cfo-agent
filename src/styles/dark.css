@@ -177,6 +177,25 @@
   color: #bfdbfe;
 }
 
+[data-theme='dark'] .matching-overview {
+  background:
+    radial-gradient(circle at top right, rgba(14,165,233,0.12), transparent 34%),
+    linear-gradient(145deg, rgba(15,23,42,0.96), rgba(30,41,59,0.84));
+  border-color: rgba(96,165,250,0.22);
+}
+
+[data-theme='dark'] .matching-plan-count,
+[data-theme='dark'] .matching-summary-action {
+  background: rgba(15,23,42,0.72);
+  border-color: rgba(96,165,250,0.24);
+}
+
+[data-theme='dark'] .matching-summary-action.is-open,
+[data-theme='dark'] .enterprise-portal .product-summary-metrics {
+  background: rgba(59,130,246,0.12);
+  border-color: rgba(96,165,250,0.28);
+}
+
 [data-theme='dark'] .investor-state-strip {
   background: rgba(59,130,246,0.14);
   color: #bfdbfe;

@@ -177,7 +177,48 @@ export function isPrimaryInstitutionRecord(record) {
 }
 
 export function isPendingInvestorConfirm(req) {
-  return String(req?.contactViewStatus || '').toUpperCase() === 'PENDING_INVESTOR_CONFIRM' || req?.status === '待确认'
+  const contactViewStatus = String(req?.contactViewStatus || '').toUpperCase()
+  return contactViewStatus === 'PENDING_INVESTOR_CONFIRM'
+    || contactViewStatus === 'PENDING_PLATFORM_REVIEW'
+    || req?.status === '待确认'
+}
+
+export function normalizeCapitalOpportunityRequest(req) {
+  const raw = req?.raw || {}
+  const contactViewStatus = String(raw.contactViewStatus || raw.contact_view_status || req?.contactViewStatus || '').toUpperCase()
+  const requiredMaterials = normalizeMaterialList(raw.requiredMaterials ?? raw.required_materials ?? req?.requiredMaterials ?? req?.missingMaterials)
+  const normalized = {
+    ...req,
+    id: String(raw.id || req?.id || ''),
+    matchId: raw.id || req?.matchId || req?.id || '',
+    enterpriseId: raw.enterpriseId || req?.enterpriseId || '',
+    companyName: raw.companyName || req?.companyName || '',
+    endpointName: raw.endpointName || req?.endpointName || '',
+    productName: raw.productName || req?.productName || req?.routeName || '',
+    allocatedAmountWan: raw.allocatedAmountWan ?? req?.allocatedAmountWan,
+    allocatedRatio: raw.allocatedRatio ?? req?.allocatedRatio,
+    fundingPurposeCovered: raw.fundingPurposeCovered || req?.fundingPurposeCovered || '',
+    routeMatchScore: raw.routeMatchScore ?? req?.routeMatchScore,
+    routeMatchReason: raw.routeMatchReason || req?.routeMatchReason || '',
+    suggestedAmountWan: raw.suggestedAmountWan ?? req?.suggestedAmountWan,
+    amountFitConclusion: raw.amountFitConclusion || req?.amountFitConclusion || '',
+    estimatedCostRange: raw.estimatedCostRange || req?.estimatedCostRange || '',
+    estimatedTerm: raw.estimatedTerm || req?.estimatedTerm || '',
+    estimatedArrivalDays: raw.estimatedArrivalDays ?? req?.estimatedArrivalDays,
+    matchReason: raw.matchReason || req?.matchReason || '',
+    riskAdvice: raw.riskAdvice || req?.riskAdvice || '',
+    requiredMaterials,
+    missingMaterials: requiredMaterials,
+    matchRisk: raw.matchRisk || req?.matchRisk || '',
+    matchRate: raw.matchScore ?? req?.matchRate,
+    contactViewStatus: contactViewStatus || req?.contactViewStatus || '',
+    raw,
+  }
+
+  return {
+    ...normalized,
+    status: getCapitalOpportunityStatus(normalized.contactViewStatus, req?.status),
+  }
 }
 
 export function isRequestOwnedByCurrentInstitution(req, currentInstitution, accessibleCodes = []) {
@@ -191,7 +232,10 @@ export function isRequestOwnedByCurrentInstitution(req, currentInstitution, acce
     req?.raw?.investorId,
     req?.raw?.investor_id,
   ].map(value => String(value || '').trim()).filter(Boolean)
-  if (requestCodes.length === 0 || currentCodes.size === 0) return false
+  // New investor opportunity rows are already scoped by the investor endpoint and
+  // no longer repeat an investor code on each row.
+  if (requestCodes.length === 0) return Boolean(req?.raw?.id && req?.raw?.enterpriseId)
+  if (currentCodes.size === 0) return false
   return requestCodes.some(code => currentCodes.has(code))
 }
 
@@ -250,6 +294,27 @@ export function formatMaybePercent(value) {
   const num = Number(text)
   if (!Number.isFinite(num)) return text
   return `${Number.isInteger(num) ? num : num.toFixed(1).replace(/\.0$/, '')}%`
+}
+
+function getCapitalOpportunityStatus(contactViewStatus, fallbackStatus) {
+  switch (String(contactViewStatus || '').toUpperCase()) {
+    case 'PENDING_INVESTOR_CONFIRM':
+    case 'PENDING_PLATFORM_REVIEW':
+      return '待确认'
+    case 'APPROVED':
+      return '已确认'
+    case 'INVESTOR_REJECTED':
+      return '暂不接收'
+    default:
+      return fallbackStatus || ''
+  }
+}
+
+function normalizeMaterialList(value) {
+  if (Array.isArray(value)) return value.map(item => String(item || '').trim()).filter(Boolean)
+  const text = String(value || '').trim()
+  if (!text) return []
+  return text.split(/[、,，;；\n]/).map(item => item.trim()).filter(Boolean)
 }
 
 function delay(ms) {

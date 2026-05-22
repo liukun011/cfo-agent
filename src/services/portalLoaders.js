@@ -4,10 +4,10 @@ import {
   fetchAllEnterpriseList,
   fetchEnterpriseDetail,
   fetchEnterpriseList,
+  fetchEnterprisePathMatchResults,
   fetchInvestorListByCreateUser,
   fetchInvestorOpportunities,
   fetchQuestionPage,
-  fetchStoredAnalysis,
 } from '../api'
 import { mapEnterpriseVO, mapInvestorVO } from '../data/mappers'
 import { getCurrentUserId } from './authSession'
@@ -20,8 +20,8 @@ export async function loadEnterprisePortalData(dispatch, { selectLatestEnterpris
     await loadQuestionBank(dispatch, { silent: true })
 
     const userId = requireCurrentUserId()
-    const enterprises = await fetchEnterpriseList(userId, USER_ROLES.ENTERPRISE)
-    dispatch({ type: 'LOAD_ENTERPRISES_FROM_API', payload: { data: enterprises || [] } })
+    const enterprises = sortEnterpriseRecordsByCreatedTime(normalizeRecords(await fetchEnterpriseList(userId, USER_ROLES.ENTERPRISE)))
+    dispatch({ type: 'LOAD_ENTERPRISES_FROM_API', payload: { data: enterprises } })
 
     if (enterprises?.length > 0) {
       const latestDetail = await loadEnterpriseDetail(enterprises[0])
@@ -62,7 +62,7 @@ export async function loadAdminEnterpriseDetail(dispatch, enterpriseId) {
 }
 
 export async function loadAdminEnterpriseAnalysis(dispatch, enterpriseId) {
-  const analysis = await fetchStoredAnalysis(enterpriseId)
+  const analysis = await fetchEnterprisePathMatchResults(enterpriseId)
   dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: analysis || null } })
   return analysis
 }
@@ -215,6 +215,20 @@ function sortInvestorRecordsByCreatedTime(investors) {
   })
 }
 
+function sortEnterpriseRecordsByCreatedTime(enterprises) {
+  return [...(enterprises || [])].sort((a, b) => {
+    const bTime = getRecordTime(b)
+    const aTime = getRecordTime(a)
+    if (bTime !== aTime) return bTime - aTime
+    return Number(pickRecord(b, 'id') || 0) - Number(pickRecord(a, 'id') || 0)
+  })
+}
+
+function getRecordTime(record) {
+  const raw = pickRecord(record, 'createdAt', 'created_at', 'updatedAt', 'updated_at') || ''
+  return Date.parse(String(raw).replace(' ', 'T')) || Date.parse(raw) || 0
+}
+
 function hasMainFlag(item) {
   const flag = pickRecord(item, 'mainFlag', 'main_flag')
   return flag === true || flag === 1 || String(flag).toLowerCase() === 'true' || String(flag).toUpperCase() === 'Y'
@@ -252,7 +266,7 @@ async function loadStoredAnalyses(dispatch, enterprises) {
 
 async function loadStoredAnalysis(dispatch, enterpriseId) {
   try {
-    const analysis = await fetchStoredAnalysis(enterpriseId)
+    const analysis = await fetchEnterprisePathMatchResults(enterpriseId)
     dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: analysis || null } })
     return analysis
   } catch (e) {

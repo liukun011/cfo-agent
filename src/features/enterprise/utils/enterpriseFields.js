@@ -38,6 +38,24 @@ export function getCoreEnterpriseFields(fields = []) {
     .filter(Boolean)
 }
 
+export function getExtendedEnterpriseFields(enterprise) {
+  return (enterprise?.extendedInfo || [])
+    .filter(field => {
+      const id = String(field.id || '').trim()
+      const label = String(field.label || '').trim()
+      return (id || label) && hasValue(field.value)
+    })
+    .sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
+    .map((field, index) => ({
+      id: field.id || field.label || `extended_${index + 1}`,
+      label: field.label || field.id || `采集项 ${index + 1}`,
+      value: field.value,
+      hint: field.hint || '',
+      long: true,
+      group: 'extended',
+    }))
+}
+
 export function buildEnterpriseFields(enterprise) {
   return [
     { id: 'companyName', label: '企业名称', value: enterprise.companyName, group: 'company' },

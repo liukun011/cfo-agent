@@ -21,7 +21,7 @@ function pick(obj, ...keys) {
 }
 
 export function mapEnterpriseVO(item) {
-  const extInfo = normalizeList(item.extendedInfo)
+  const extInfo = normalizeList(pick(item, 'extendedInfo', 'extended_info'))
     .map(e => ({ ...e, label: normalizeDisplayLabel(e.label), value: e.value }))
     .sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0))
   const aiTagList = normalizeList(item.aiTags).map(t => ({ label: normalizeDisplayLabel(t.label), value: t.value }))
@@ -139,9 +139,13 @@ export function mapInvestorFieldsToInvestor(fields, base = {}) {
 
 export function mapOpportunityToCapitalRequest(item) {
   const contactViewStatus = pick(item, 'contactViewStatus', 'contact_view_status') || 'NOT_APPLIED'
+  const allocatedAmountWan = pick(item, 'allocatedAmountWan', 'allocated_amount_wan', 'amountWan', 'amount_wan')
+  const suggestedAmountWan = pick(item, 'suggestedAmountWan', 'suggested_amount_wan')
+  const endpointName = pick(item, 'endpointName', 'endpoint_name', 'routeName', 'route_name') || ''
+  const requiredMaterials = normalizeDisplayList(pick(item, 'requiredMaterials', 'required_materials'))
   return {
-    id: item.matchId || `${item.taskId || ''}-${item.investorIdCode || ''}-${item.routeIdCode || ''}`,
-    matchId: item.matchId || '',
+    id: pick(item, 'id', 'matchId', 'match_id') || `${item.taskId || ''}-${item.investorIdCode || ''}-${item.routeIdCode || ''}`,
+    matchId: pick(item, 'id', 'matchId', 'match_id') || '',
     taskId: item.taskId || '',
     enterpriseId: Number(item.enterpriseId) || item.enterpriseId || '',
     investorIdCode: item.investorIdCode || '',
@@ -150,19 +154,32 @@ export function mapOpportunityToCapitalRequest(item) {
     investorType: item.investorType || '',
     routeIdCode: item.routeIdCode || '',
     companyName: item.companyName || '',
-    amount: item.totalDemandWan ? `${item.totalDemandWan} 万` : item.amountWan ? `${item.amountWan} 万` : '',
-    product: [item.routeName, item.amountWan ? `${item.amountWan} 万` : ''].filter(Boolean).join(' '),
-    demandType: item.productType || item.fundPurpose || '',
+    amount: pick(item, 'totalDemandWan', 'total_demand_wan') ? `${pick(item, 'totalDemandWan', 'total_demand_wan')} 万` : allocatedAmountWan ? `${allocatedAmountWan} 万` : '',
+    product: pick(item, 'productName', 'product_name') || endpointName,
+    demandType: pick(item, 'endpointName', 'endpoint_name', 'productType', 'product_type', 'fundPurpose', 'fund_purpose') || '',
     pushTime: item.createdAt || '',
     contactViewStatus,
     status: mapContactStatus(contactViewStatus),
     matchRate: parseInt(item.matchScore) || 0,
-    matchLabel: item.matchLabel || '',
+    matchLabel: formatMatchLevel(pick(item, 'matchLevel', 'match_level', 'matchLabel', 'match_label')),
     missingMaterials: [],
-    matchReason: item.matchReasons || '',
-    matchRisk: item.matchRisks || item.riskNotes || '',
-    routeName: item.routeName || '',
-    fundPurpose: item.fundPurpose || '',
+    matchReason: pick(item, 'matchReason', 'match_reason', 'matchReasons', 'match_reasons') || '',
+    matchRisk: pick(item, 'matchRisk', 'match_risk', 'matchRisks', 'match_risks', 'riskNotes', 'risk_notes') || '',
+    routeName: endpointName,
+    endpointName,
+    allocatedAmountWan,
+    allocatedRatio: pick(item, 'allocatedRatio', 'allocated_ratio') || '',
+    suggestedAmountWan,
+    fundingPurposeCovered: pick(item, 'fundingPurposeCovered', 'funding_purpose_covered') || '',
+    routeMatchScore: pick(item, 'routeMatchScore', 'route_match_score') || '',
+    routeMatchReason: pick(item, 'routeMatchReason', 'route_match_reason') || '',
+    amountFitConclusion: pick(item, 'amountFitConclusion', 'amount_fit_conclusion') || '',
+    estimatedCostRange: pick(item, 'estimatedCostRange', 'estimated_cost_range') || '',
+    estimatedTerm: pick(item, 'estimatedTerm', 'estimated_term') || '',
+    estimatedArrivalDays: pick(item, 'estimatedArrivalDays', 'estimated_arrival_days') || '',
+    riskAdvice: pick(item, 'riskAdvice', 'risk_advice') || '',
+    requiredMaterials,
+    fundPurpose: pick(item, 'fundingPurposeCovered', 'funding_purpose_covered', 'fundPurpose', 'fund_purpose') || '',
     coverageRate: item.coverageRate || '',
     weightedAvgCost: item.weightedAvgCost || '',
     fundingGapWan: item.fundingGapWan || '',
@@ -252,6 +269,7 @@ function parseAmountRange(value = '') {
 }
 
 export function mapAnalysisToProducts(data) {
+  if (Array.isArray(data)) return mapPathMatchResultsToProducts(data)
   const plan = data?.combination_plan
   if (!plan || !plan.routes) return []
   return plan.routes.map(route => {
@@ -300,17 +318,122 @@ export function mapAnalysisToProducts(data) {
   })
 }
 
+function mapPathMatchResultsToProducts(results = []) {
+  return results
+    .filter(route => pick(route, 'id', 'endpointCode', 'endpoint_code', 'endpointName', 'endpoint_name'))
+    .sort((a, b) => Number(pick(a, 'rankNo', 'rank_no') || 0) - Number(pick(b, 'rankNo', 'rank_no') || 0))
+    .map((route, index) => {
+      const investors = pick(route, 'investors') || []
+      const endpointName = pick(route, 'endpointName', 'endpoint_name') || ''
+      const endpointCode = pick(route, 'endpointCode', 'endpoint_code') || ''
+      const routeRole = formatRouteRole(pick(route, 'routeRole', 'route_role'))
+      const matchLevel = formatMatchLevel(pick(route, 'matchLevel', 'match_level'))
+      const amountWan = pick(route, 'allocatedAmountWan', 'allocated_amount_wan') || 0
+      return {
+        id: pick(route, 'id') || endpointCode || `path_${index + 1}`,
+        pathMatchResultId: pick(route, 'id') || '',
+        taskId: pick(route, 'taskId', 'task_id') || '',
+        endpointCode,
+        name: endpointName || '金融方案',
+        tag: [routeRole, matchLevel].filter(Boolean).join(' · ') || pick(route, 'policyName', 'policy_name') || '金融方案',
+        amount: amountWan ? `${amountWan} 万` : '',
+        totalDemandWan: pick(route, 'totalDemandWan', 'total_demand_wan') || '',
+        ratioOfTotal: pick(route, 'allocatedRatio', 'allocated_ratio') || '',
+        term: pick(route, 'term', 'estimatedTerm', 'estimated_term') || '',
+        repaymentMethod: pick(route, 'repaymentMethod', 'repayment_method') || '',
+        purpose: pick(route, 'fundingPurposeCovered', 'funding_purpose_covered') || '',
+        score: parseScore(pick(route, 'matchScore', 'match_score')),
+        matchLevel,
+        description: pick(route, 'allocationReason', 'allocation_reason') || pick(route, 'matchReason', 'match_reason') || '',
+        allocationReason: pick(route, 'allocationReason', 'allocation_reason') || '',
+        riskNotes: pick(route, 'riskAdvice', 'risk_advice') || '',
+        matchReason: pick(route, 'matchReason', 'match_reason') || '',
+        amountCheckNote: pick(route, 'amountCheckNote', 'amount_check_note') || '',
+        enhancementNote: pick(route, 'enhancementNote', 'enhancement_note') || '',
+        matchGapNote: pick(route, 'requiredSupplementInvestorType', 'required_supplement_investor_type') || '',
+        matchedInvestors: investors.map(inv => mapPathInvestor(inv, route)),
+        raw: route,
+      }
+    })
+}
+
+function mapPathInvestor(inv, route) {
+  const contactViewStatus = pick(inv, 'contactViewStatus', 'contact_view_status') || 'NOT_APPLIED'
+  const matchId = pick(inv, 'id', 'matchId', 'match_id')
+  return {
+    id: pick(inv, 'investorIdCode', 'investor_id_code', 'investor_id', 'id'),
+    matchId,
+    investorIdCode: pick(inv, 'investorIdCode', 'investor_id_code', 'investor_id'),
+    taskId: pick(inv, 'taskId', 'task_id') || pick(route, 'taskId', 'task_id') || '',
+    name: pick(inv, 'investorName', 'investor_name') || '',
+    type: pick(inv, 'investorType', 'investor_type') || '',
+    productName: pick(inv, 'productName', 'product_name') || '',
+    matchRate: parseScore(pick(inv, 'matchScore', 'match_score')),
+    matchLevel: formatMatchLevel(pick(inv, 'matchLevel', 'match_level')),
+    matchReason: pick(inv, 'matchReason', 'match_reason', 'matchReasons', 'match_reasons') || '',
+    matchRisk: pick(inv, 'matchRisk', 'match_risk', 'riskAdvice', 'risk_advice') || '',
+    requiredMaterials: pick(inv, 'requiredMaterials', 'required_materials') || '',
+    suggestedAmountWan: pick(inv, 'suggestedAmountWan', 'suggested_amount_wan') || '',
+    estimatedCostRange: pick(inv, 'estimatedCostRange', 'estimated_cost_range') || '',
+    estimatedTerm: pick(inv, 'estimatedTerm', 'estimated_term') || '',
+    estimatedArrivalDays: pick(inv, 'estimatedArrivalDays', 'estimated_arrival_days') || '',
+    contactViewStatus,
+    status: mapContactStatus(contactViewStatus),
+    tags: [pick(inv, 'investorType', 'investor_type'), pick(inv, 'productName', 'product_name')].filter(Boolean),
+    contactPerson: pick(inv, 'contactPerson', 'contact_person') || '',
+    contactPhone: pick(inv, 'contactPhone', 'contact_phone') || '',
+    raw: inv,
+  }
+}
+
 function parseScore(value) {
   const num = Number.parseInt(value, 10)
   if (!Number.isFinite(num)) return 0
   return Math.max(0, Math.min(100, num))
 }
 
+function formatRouteRole(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const map = {
+    MAIN: '主方案',
+    SUPPLEMENT: '补充方案',
+    ENHANCEMENT: '增强方案',
+  }
+  return map[text.toUpperCase()] || formatReadableEnum(text)
+}
+
+function formatMatchLevel(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const map = {
+    HIGH: '高度匹配',
+    MEDIUM: '适度匹配',
+    LOW: '谨慎匹配',
+  }
+  return map[text.toUpperCase()] || formatReadableEnum(text)
+}
+
+function formatReadableEnum(value) {
+  const text = String(value || '').trim()
+  if (!text || /[\u4e00-\u9fff]/.test(text)) return text
+  if (/^[A-Z][A-Z0-9_ -]*$/.test(text)) return ''
+  return text
+}
+
+function normalizeDisplayList(value) {
+  if (Array.isArray(value)) return value.map(item => String(item || '').trim()).filter(Boolean)
+  return String(value || '')
+    .split(/[、,，;；\n]/)
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
 function mapContactStatus(status) {
   const normalized = String(status || '').trim().toUpperCase()
   const map = {
     NOT_APPLIED: '未发起',
-    PENDING_PLATFORM_REVIEW: '待审核',
+    PENDING_PLATFORM_REVIEW: '待确认',
     PLATFORM_REJECTED: '暂不推送',
     PENDING_INVESTOR_CONFIRM: '待确认',
     INVESTOR_REJECTED: '暂不接收',

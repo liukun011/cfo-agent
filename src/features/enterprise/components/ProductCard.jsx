@@ -6,6 +6,7 @@ export default function ProductCard({
   isExpanded,
   expandedInvestorReasons,
   contactSubmittingKey,
+  isMatchingInvestors,
   statusColors,
   canInitiateContact,
   getInvestorStatusText,
@@ -13,11 +14,12 @@ export default function ProductCard({
   onToggleExpanded,
   onToggleInvestorReason,
   onInitiateContact,
+  onMatchInvestors,
 }) {
   const summaryMetaItems = [
     { label: '融资额度', value: product.amount },
     { label: '融资期限', value: product.term },
-    { label: '资金方', value: product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '暂无' },
+    { label: '资金方', value: product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '待匹配' },
   ]
   const detailMetaItems = [
     { label: '需求占比', value: product.ratioOfTotal },
@@ -59,7 +61,7 @@ export default function ProductCard({
             </span>
           </div>
         </div>
-        <div className="product-meta-grid product-meta-grid-summary">
+        <div className="product-meta-grid product-meta-grid-summary product-summary-metrics">
           {summaryMetaItems.map(item => (
             <div key={item.label} className={`product-meta-item ${item.wide ? 'wide' : ''}`}>
               <span>{item.label}</span>
@@ -93,12 +95,25 @@ export default function ProductCard({
           <div className="detail-section investor-match-section">
             <div className="investor-section-head">
               <h5>匹配资金方</h5>
-              <span>{product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '暂无'}</span>
+              <div className="investor-section-actions">
+                <span>{product.matchedInvestors.length ? `${product.matchedInvestors.length} 家` : '尚未匹配'}</span>
+                <button
+                  className={product.matchedInvestors.length ? 'btn-outline btn-sm' : 'btn-primary btn-sm'}
+                  onClick={onMatchInvestors}
+                  disabled={isMatchingInvestors || !product.pathMatchResultId}
+                >
+                  {isMatchingInvestors ? '匹配中...' : product.matchedInvestors.length ? '重新匹配' : '匹配资金方'}
+                </button>
+              </div>
             </div>
             {product.matchedInvestors.length === 0 && (
               <div className="investor-empty">
-                <strong>暂无可对接资金方</strong>
-                <p>{product.matchGapNote || '可补充企业资料或重新生成方案后再查看。'}</p>
+                <strong>{isMatchingInvestors ? '正在匹配该方案下的资金方' : '暂未匹配到资金方'}</strong>
+                <p>
+                  {isMatchingInvestors
+                    ? '匹配完成后，可在这里查看可对接的资金方。'
+                    : product.matchGapNote || '点击上方按钮继续匹配该方案下的资金方。'}
+                </p>
               </div>
             )}
             {product.matchedInvestors.map((investor) => {

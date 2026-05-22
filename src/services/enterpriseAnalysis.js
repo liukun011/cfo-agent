@@ -1,10 +1,10 @@
 import {
   createEnterprise,
-  fetchAiTaskResult,
   fetchAiTaskStatus,
   fetchEnterpriseDetail,
-  fetchStoredAnalysis,
-  submitAnalysis,
+  fetchEnterprisePathMatchResults,
+  submitPathMatch,
+  submitResolutionMatch,
   updateEnterprise,
 } from '../api'
 import { mapEnterpriseVO } from '../data/mappers'
@@ -63,12 +63,12 @@ export async function waitForEnterpriseDetection(enterpriseId, dispatch) {
 export async function generateEnterpriseAnalysis(enterpriseId, dispatch) {
   let analysis = null
   try {
-    const task = await submitAnalysis(enterpriseId)
+    const task = await submitPathMatch(enterpriseId)
     if (task?.taskId) {
       analysis = await waitForAnalysis(enterpriseId, task.taskId)
     }
     if (!analysis) {
-      analysis = await fetchStoredAnalysis(enterpriseId)
+      analysis = await fetchEnterprisePathMatchResults(enterpriseId)
     }
   } catch (analysisError) {
     console.log('融资方案分析接口暂不可用', analysisError)
@@ -81,7 +81,11 @@ export async function generateEnterpriseAnalysis(enterpriseId, dispatch) {
 }
 
 export async function startEnterpriseAnalysis(enterpriseId) {
-  return submitAnalysis(enterpriseId)
+  return submitPathMatch(enterpriseId)
+}
+
+export async function startEnterpriseInvestorResolution(pathMatchResultId) {
+  return submitResolutionMatch(pathMatchResultId)
 }
 
 export async function refreshEnterpriseAnalysis(enterpriseId, taskId, dispatch, options = {}) {
@@ -90,15 +94,13 @@ export async function refreshEnterpriseAnalysis(enterpriseId, taskId, dispatch, 
     const status = await fetchAiTaskStatus(taskId)
     taskStatus = status?.taskStatus || status?.status || ''
     if (taskStatus === 'SUCCESS') {
-      const resultSource = options.resultSource || 'stored'
-      const analysis = resultSource === 'task'
-        ? await fetchAiTaskResult(taskId)
-        : await fetchStoredAnalysis(enterpriseId)
-      if (analysis) {
+      const analysis = await fetchEnterprisePathMatchResults(enterpriseId)
+      if (hasAnalysisResult(analysis)) {
         dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: analysis } })
         await loadTaskHistory(dispatch, enterpriseId).catch(() => null)
+        return { taskStatus, analysis }
       }
-      return { taskStatus, analysis }
+      return { taskStatus, analysis: null }
     }
     if (taskStatus === 'FAILED') {
       dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: null } })
@@ -107,10 +109,16 @@ export async function refreshEnterpriseAnalysis(enterpriseId, taskId, dispatch, 
     return { taskStatus: taskStatus || 'RUNNING', analysis: null }
   }
 
-  const analysis = await fetchStoredAnalysis(enterpriseId)
-  dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: analysis || null } })
-  if (analysis) await loadTaskHistory(dispatch, enterpriseId).catch(() => null)
-  if (analysis) return { taskStatus: taskStatus || 'SUCCESS', analysis }
+  const analysis = await fetchEnterprisePathMatchResults(enterpriseId)
+  if (hasAnalysisResult(analysis)) {
+    dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: analysis } })
+    await loadTaskHistory(dispatch, enterpriseId).catch(() => null)
+    return { taskStatus: taskStatus || 'SUCCESS', analysis }
+  }
+
+  if (!options.preserveProductsOnEmpty) {
+    dispatch({ type: 'LOAD_PRODUCTS_FROM_API', payload: { enterpriseId, data: analysis || null } })
+  }
 
   return { taskStatus: taskStatus || 'RUNNING', analysis: null }
 }
@@ -135,7 +143,7 @@ async function waitForAnalysis(enterpriseId, taskId) {
     await delay(2500)
     const status = await fetchAiTaskStatus(taskId)
     const taskStatus = status?.taskStatus || status?.status
-    if (taskStatus === 'SUCCESS') return fetchStoredAnalysis(enterpriseId)
+    if (taskStatus === 'SUCCESS') return fetchEnterprisePathMatchResults(enterpriseId)
     if (taskStatus === 'FAILED') return null
   }
   return null
@@ -145,6 +153,11 @@ function hasDetectionResult(enterprise) {
   const importTaskStatus = String(enterprise?.importTaskStatus || '').toUpperCase()
   return importTaskStatus === 'SUCCESS'
     || importTaskStatus === 'FAILED'
+}
+
+function hasAnalysisResult(analysis) {
+  if (Array.isArray(analysis)) return analysis.length > 0
+  return Boolean(analysis)
 }
 
 function mergeExtendedInfo(current = [], incoming) {

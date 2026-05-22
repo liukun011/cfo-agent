@@ -16,7 +16,7 @@ export default function GenerationStatus({
   const steps = [
     { key: 'submitting', label: '准备生成' },
     { key: 'polling', label: '分析资料' },
-    { key: 'background', label: '匹配资金方' },
+    { key: 'background', label: '整理方案' },
     { key: 'ready', label: '生成完成' },
   ]
   const activeIndex = Math.max(0, steps.findIndex(step => step.key === generationPhase))

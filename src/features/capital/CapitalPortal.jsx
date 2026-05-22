@@ -35,40 +35,35 @@ import {
   isRequestOwnedByCurrentInstitution,
   isSupportedProfileFile,
   normalizeInvestorFields,
+  normalizeCapitalOpportunityRequest,
   sortCapitalRequests,
   sortInvestorFieldsForDisplay,
   waitForProfileImportResult,
   waitForProfileSupplementResult,
 } from './utils/capitalPortalUtils'
 
-function getInvestorFormDetailCacheKey() {
-  const userId = getCurrentUserId() || 'anonymous'
-  return `cfo-agent-investor-form-detail-id:${userId}`
-}
-
-function getCachedInvestorFormDetailId() {
-  try {
-    return window.localStorage.getItem(getInvestorFormDetailCacheKey()) || ''
-  } catch {
-    return ''
-  }
-}
-
-function setCachedInvestorFormDetailId(id) {
-  try {
-    window.localStorage.setItem(getInvestorFormDetailCacheKey(), String(id || ''))
-  } catch {
-    // 忽略本地缓存失败，保存结果仍以后端接口为准。
-  }
-}
-
 export default function CapitalPortal({ onLogout, theme, setTheme }) {
   const { state, dispatch } = useAppStore()
   const [tab, setTab] = useState('requests')
   const investor = state.currentInvestor
   const visibleRequests = state.capitalRequests
+    .map(normalizeCapitalOpportunityRequest)
     .filter(req => req.status === '待确认' || req.status === '已确认')
     .sort(sortCapitalRequests)
+  const capitalStatistics = {
+    matchedCount: visibleRequests.length,
+    contactExchangedCount: visibleRequests.filter(req => req.status === '已确认').length,
+    recentMatches: visibleRequests.map(req => ({
+      company: req.status === '已确认' ? req.companyName : '',
+      amount: formatWan(req.allocatedAmountWan) || formatWan(req.suggestedAmountWan) || req.amount,
+      date: req.pushTime,
+      score: req.matchRate,
+      product: [req.productName || req.routeName || req.product, req.endpointName].filter(Boolean).join(' · '),
+      reason: req.matchReason,
+      industry: req.fundingPurposeCovered || req.demandType,
+      status: req.status === '已确认' ? '已对接' : req.status,
+    })),
+  }
   const [showStat, setShowStat] = useState(false)
   const [statType, setStatType] = useState('')
   const [selectedMatch, setSelectedMatch] = useState(null)
@@ -78,7 +73,6 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
   const [tagFormOptions, setTagFormOptions] = useState([])
   const [selectedTagFormId, setSelectedTagFormId] = useState('')
   const [activeTagFormSchema, setActiveTagFormSchema] = useState(null)
-  const [investorFormDetailId, setInvestorFormDetailId] = useState(() => getCachedInvestorFormDetailId())
   const [isLoadingTagForms, setIsLoadingTagForms] = useState(false)
   const [isSavingLabels, setIsSavingLabels] = useState(false)
   const [labelSaveNotice, setLabelSaveNotice] = useState('')
@@ -105,13 +99,6 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
   const tagFormsLoadedRef = useRef(false)
   const showToast = useCallback((msg, type = 'success') => setToast({ message: msg, type }), [])
   const closeToast = useCallback(() => setToast(null), [])
-
-  const rememberInvestorFormDetailId = useCallback((id) => {
-    const value = String(id || '').trim()
-    if (!value) return
-    setInvestorFormDetailId(value)
-    setCachedInvestorFormDetailId(value)
-  }, [])
 
   const loadData = useCallback(async (options = {}) => {
     if (isLoadingDataRef.current) return
@@ -161,7 +148,9 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
     try {
       const options = await getInvestorTagFormOptions()
       setTagFormOptions(options)
-      const detailId = investorFormDetailId || investor?.id
+      // 只有当前账号名下的本机构才能作为已填表单读取来源；
+      // 本地缓存的旧机构 ID 不能把新建流程拉回修改态。
+      const detailId = investor?.id
       if (detailId) {
         try {
           const filled = await getInvestorFilledTagForm(detailId)
@@ -170,7 +159,6 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
             setSelectedTagFormId(selectedId)
             setActiveTagFormSchema(filled)
             setLabelDrafts(flattenTagFormFields(filled))
-            if (filled.investorId) rememberInvestorFormDetailId(filled.investorId)
             setProfileDraftNeedsSave(false)
             return
           }
@@ -192,7 +180,7 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
     } finally {
       setIsLoadingTagForms(false)
     }
-  }, [investor, investorFormDetailId, isLoadingTagForms, labelDrafts, rememberInvestorFormDetailId, showToast])
+  }, [investor, isLoadingTagForms, labelDrafts, showToast])
 
   useEffect(() => {
     if (hasLoadedApiRef.current) return
@@ -248,6 +236,37 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
       await loadData()
     } catch (e) {
       showToast(getFriendlyError(e, '确认对接失败，请稍后重试'), 'error')
+    } finally {
+      setConfirmingRequestId('')
+    }
+  }
+
+  const handleRejectRequest = async (req) => {
+    const matchId = req.matchId || req.id
+    const investorIdCode = req.investorIdCode || currentInstitution?.investorIdCode || currentInstitution?.id || ''
+    if (!matchId || !investorIdCode) {
+      showToast('缺少匹配记录 ID 或当前机构编码，暂不能处理对接', 'error')
+      return
+    }
+    if (!isPendingInvestorConfirm(req)) {
+      showToast('当前状态不需要处理', 'error')
+      return
+    }
+    if (!isRequestOwnedByCurrentInstitution(req, currentInstitution, accessibleInstitutionCodes)) {
+      showToast('该机会不属于当前机构，无法处理', 'error')
+      return
+    }
+    try {
+      setConfirmingRequestId(req.id)
+      await updateContactViewStatus({
+        id: matchId,
+        investorIdCode,
+        contactViewStatus: CONTACT_VIEW_STATUS.INVESTOR_REJECTED,
+      })
+      showToast('已暂不接收该对接', 'success')
+      await loadData()
+    } catch (e) {
+      showToast(getFriendlyError(e, '处理失败，请稍后重试'), 'error')
     } finally {
       setConfirmingRequestId('')
     }
@@ -442,7 +461,7 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
   const hasLabelChanges = hasInvestorFieldChanges(labelDrafts, investor?.fields || [])
   const dynamicMissingRequiredLabels = activeTagFormSchema ? getTagFormMissingRequiredLabels(activeTagFormSchema) : missingRequiredLabels
   const hasUnsavedLabelWork = hasLabelChanges || profileDraftNeedsSave
-  const hasConfiguredInvestorProfile = Boolean(investor || investorFormDetailId || activeTagFormSchema?.investorId)
+  const hasConfiguredInvestorProfile = Boolean(investor)
   const currentInstitution = getCurrentInstitution(investor, state.capitalPartners)
   const accessibleInstitutionCodes = collectAccessibleInstitutionCodes(currentInstitution, state.capitalPartners)
   const associatedInstitutions = currentInstitution?.subInstitutions || []
@@ -479,7 +498,10 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
         showToast('登录状态已失效，请重新登录后保存', 'error')
         return
       }
-      const submitInvestorId = investorFormDetailId || activeTagFormSchema.investorId || investor?.id
+      // /investor/submit uses presence of id to decide update vs create.
+      // Do not reuse cached form ids or ids hydrated from an old filled schema after
+      // the institution has moved away from the current account.
+      const submitInvestorId = investor?.id || ''
       const submitResult = await submitInvestorTagForm({
         id: submitInvestorId,
         categoryId: selectedTagFormId,
@@ -495,7 +517,6 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
       let resolvedInvestorId = savedInvestorId
       let savedSchema = activeTagFormSchema
       if (savedInvestorId) {
-        rememberInvestorFormDetailId(savedInvestorId)
         try {
           const filled = await getInvestorFilledTagForm(savedInvestorId)
           if (filled?.investorId) resolvedInvestorId = filled.investorId
@@ -577,7 +598,7 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
         {tab === 'requests' && (
           <OpportunitiesTab
             loading={state.loading}
-            statistics={state.statistics}
+            statistics={capitalStatistics}
             opportunityErrors={state.capitalOpportunityErrors}
             loadError={loadError}
             investor={investor}
@@ -590,6 +611,7 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
             onConfigureLabels={() => setTab('labels')}
             onOpenStat={(type) => { setStatType(type); setShowStat(true) }}
             onConfirmRequest={handleConfirmRequest}
+            onRejectRequest={handleRejectRequest}
             expandedRequestIds={expandedRequestIds}
             onToggleExpandedRequest={(requestId) => setExpandedRequestIds(prev => (
               prev.includes(requestId) ? prev.filter(id => id !== requestId) : [...prev, requestId]
@@ -671,9 +693,9 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
               {!selectedMatch ? (
                 statType === 'matched' ? (
                   /* 匹配明细 - 完全脱敏 */
-                  state.statistics.recentMatches.length === 0 ? (
+                  capitalStatistics.recentMatches.length === 0 ? (
                     <div className="empty-panel modal-empty"><strong>暂无对接需求</strong><p>可稍后刷新查看。</p></div>
-                  ) : state.statistics.recentMatches.map((item, idx) => (
+                  ) : capitalStatistics.recentMatches.map((item, idx) => (
                     <div key={idx} className="modal-premium-item" style={{ cursor: 'default' }}>
                       <div className="modal-premium-item-info">
                         <span className="modal-premium-item-name" style={{ color: 'var(--text-ter)' }}>{item.industry}</span>
@@ -684,9 +706,9 @@ export default function CapitalPortal({ onLogout, theme, setTheme }) {
                   ))
                 ) : (
                   /* 对接明细 - 只显示已确认企业 */
-                  state.statistics.recentMatches.filter(item => item.status === '已确认' || item.status === '已对接').length === 0 ? (
+                  capitalStatistics.recentMatches.filter(item => item.status === '已确认' || item.status === '已对接').length === 0 ? (
                     <div className="empty-panel modal-empty"><strong>暂无已确认记录</strong><p>可稍后刷新查看。</p></div>
-                  ) : state.statistics.recentMatches.filter(item => item.status === '已确认' || item.status === '已对接').map((item, idx) => (
+                  ) : capitalStatistics.recentMatches.filter(item => item.status === '已确认' || item.status === '已对接').map((item, idx) => (
                     <div key={idx} className="modal-premium-item" style={{ cursor: 'pointer' }} onClick={() => setSelectedMatch(item)}>
                       <div className="modal-premium-item-info">
                         <span className="modal-premium-item-name">{item.company}</span>

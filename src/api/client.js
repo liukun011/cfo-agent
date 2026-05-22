@@ -134,9 +134,30 @@ export function fetchStoredAnalysis(enterpriseId) {
   return request(`/cfo/analysis/${enterpriseId}/stored-result`)
 }
 
+/** 查询企业融资方案路径及其资金方匹配层级结果 */
+export function fetchEnterprisePathMatchResults(enterpriseId) {
+  if (!enterpriseId) throw new Error('缺少融资企业 ID')
+  return request(`/api/cfo/path-match-result/enterprise/${enterpriseId}`)
+}
+
 /** 提交 AI 融资方案分析 */
 export function submitAnalysis(enterpriseId) {
   return request(`/cfo/analysis/${enterpriseId}/detail`)
+}
+
+/** 提交 AI 融资方案路径匹配 */
+export function submitPathMatch(enterpriseId) {
+  if (!enterpriseId) throw new Error('缺少融资企业 ID')
+  return request(`/cfo/analysis/${enterpriseId}/path-match`)
+}
+
+/** 按已匹配融资方案提交资金方匹配 */
+export function submitResolutionMatch(pathMatchResultId) {
+  if (!pathMatchResultId) throw new Error('缺少融资方案结果 ID')
+  return request('/cfo/analysis/resolution', {
+    method: 'POST',
+    body: JSON.stringify({ pathMatchResultId }),
+  })
 }
 
 /** 查询 AI 任务状态 */
@@ -369,12 +390,23 @@ export function fetchMatchedInvestors(params) {
 
 /** 按投资人编码查询匹配投资机会 */
 export function fetchInvestorOpportunities(investorIdCode) {
-  return request(`/api/cfo/route-matched-investor/investor/${investorIdCode}/opportunities`)
+  return fetchPathInvestorOpportunities(investorIdCode)
+}
+
+/** 按投资人编码查询路径匹配投资机会 */
+export function fetchPathInvestorOpportunities(investorIdCode) {
+  if (!investorIdCode) throw new Error('缺少资金方编码')
+  return request(`/api/cfo/path-match-result/investor/${investorIdCode}/opportunities`)
 }
 
 /** 更新联系方式查看状态 */
 export function updateContactViewStatus(params) {
-  return request('/api/cfo/route-matched-investor/contact-view-status', {
+  return updatePathMatchContactViewStatus(params)
+}
+
+/** 更新路径匹配资金方联系方式查看状态 */
+export function updatePathMatchContactViewStatus(params) {
+  return request('/api/cfo/path-match-result/contact-view-status', {
     method: 'POST',
     body: JSON.stringify(params),
   })

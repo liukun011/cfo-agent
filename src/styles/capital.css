@@ -368,3 +368,10 @@
 .request-action-bar {
   margin-top: 14px;
 }
+
+.request-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}

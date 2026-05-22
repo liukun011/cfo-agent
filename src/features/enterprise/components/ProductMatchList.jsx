@@ -5,6 +5,7 @@ export default function ProductMatchList({
   expandedProduct,
   expandedInvestorReasons,
   contactSubmittingKey,
+  resolutionMatchingKey,
   statusColors,
   canInitiateContact,
   getInvestorStatusText,
@@ -12,6 +13,7 @@ export default function ProductMatchList({
   onToggleProduct,
   onToggleInvestorReason,
   onInitiateContact,
+  onMatchInvestors,
 }) {
   return (
     <div className="product-list">
@@ -22,6 +24,7 @@ export default function ProductMatchList({
           isExpanded={expandedProduct === product.id}
           expandedInvestorReasons={expandedInvestorReasons}
           contactSubmittingKey={contactSubmittingKey}
+          isMatchingInvestors={resolutionMatchingKey === product.id}
           statusColors={statusColors}
           canInitiateContact={canInitiateContact}
           getInvestorStatusText={getInvestorStatusText}
@@ -29,6 +32,7 @@ export default function ProductMatchList({
           onToggleExpanded={() => onToggleProduct(expandedProduct === product.id ? null : product.id)}
           onToggleInvestorReason={onToggleInvestorReason}
           onInitiateContact={onInitiateContact}
+          onMatchInvestors={() => onMatchInvestors(product)}
         />
       ))}
     </div>
