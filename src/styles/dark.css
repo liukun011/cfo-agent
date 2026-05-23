@@ -258,6 +258,35 @@
   color: rgba(226, 232, 240, 0.9);
 }
 
+[data-theme='dark'] .enterprise-portal .product-card-body .product-explain-panel {
+  border-color: rgba(71, 85, 105, 0.5);
+  background: rgba(30, 41, 59, 0.58);
+}
+
+[data-theme='dark'] .enterprise-portal .product-card-body .product-explain-panel h5 {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+[data-theme='dark'] .enterprise-portal .product-card-body .product-explain-panel p {
+  color: rgba(226, 232, 240, 0.88);
+}
+
+[data-theme='dark'] .enterprise-portal .product-investor-toggle.no-results {
+  border-color: rgba(71, 85, 105, 0.56);
+  background: rgba(51, 65, 85, 0.58);
+  color: rgba(203, 213, 225, 0.9);
+}
+
+[data-theme='dark'] .enterprise-portal .no-investor-match-panel {
+  border-color: rgba(71, 85, 105, 0.58);
+  background: rgba(15, 23, 42, 0.56);
+}
+
+[data-theme='dark'] .enterprise-portal .no-investor-match-panel h5,
+[data-theme='dark'] .enterprise-portal .no-investor-match-panel p {
+  color: rgba(203, 213, 225, 0.9);
+}
+
 [data-theme='dark'] .product-title-toggle,
 [data-theme='dark'] .enterprise-portal .product-investor-toggle.has-results,
 [data-theme='dark'] .summary-inline-trigger,

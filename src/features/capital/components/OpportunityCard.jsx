@@ -68,7 +68,7 @@ export default function OpportunityCard({
             {request.routeMatchReason && <div className="request-row request-reason"><span className="request-label">匹配原因</span><p className="request-text">{request.routeMatchReason}</p></div>}
             {request.matchReason && <div className="request-row request-reason"><span className="request-label">核心要素</span><p className="request-text">{request.matchReason}</p></div>}
             {request.matchRisk && <div className="request-row request-reason"><span className="request-label">风险点</span><p className="request-text">{request.matchRisk}</p></div>}
-            {request.riskAdvice && <div className="request-row request-reason"><span className="request-label">建议</span><p className="request-text">{request.riskAdvice}</p></div>}
+            {request.riskAdvice && <div className="request-row request-reason"><span className="request-label">产品建议</span><p className="request-text">{request.riskAdvice}</p></div>}
             {request.requiredMaterials.length > 0 && <div className="request-row"><span className="request-label">所需材料</span><span className="request-value missing">{request.requiredMaterials.join('、')}</span></div>}
           </div>
         )}

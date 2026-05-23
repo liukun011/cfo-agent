@@ -17,9 +17,16 @@ export default function ProductCard({
   onMatchInvestors,
 }) {
   const matchedInvestors = product.matchedInvestors || []
+  const hasMatchedInvestors = matchedInvestors.length > 0
+  const hasNoMatchedInvestors = Boolean(product.investorMatchAttempted && !hasMatchedInvestors)
   const hasVisibleValue = (value) => {
     const text = String(value || '').trim()
     return Boolean(text && !['待补充', 'null', 'undefined', '-'].includes(text.toLowerCase()))
+  }
+  const normalizeValue = value => String(value || '').trim()
+  const isDuplicateText = (value, candidates) => {
+    const text = normalizeValue(value)
+    return Boolean(text && candidates.some(item => normalizeValue(item) === text))
   }
   const compactMetaItems = [
     { label: '产品额度', value: product.amount },
@@ -30,17 +37,30 @@ export default function ProductCard({
     { label: '资金用途', value: product.purpose, wide: true },
     { label: '增信方案', value: product.enhancementNote, wide: true },
   ].filter(item => hasVisibleValue(item.value))
-  const investorActionLabel = matchedInvestors.length
+  const investorActionLabel = hasMatchedInvestors
     ? (isExpanded ? '收起资金方' : '查看资金方')
+    : hasNoMatchedInvestors
+      ? '暂未匹配到资金方'
     : '匹配资金方'
 
   const handleInvestorAction = () => {
-    if (matchedInvestors.length) {
+    if (hasMatchedInvestors) {
       onToggleExpanded()
       return
     }
+    if (hasNoMatchedInvestors) return
     onMatchInvestors()
   }
+  const productDetailItems = [
+    { label: '金额分配原因', value: product.allocationReason },
+    { label: '匹配依据', value: product.matchReason },
+    { label: '风控建议', value: product.riskNotes },
+    {
+      label: '产品建议',
+      value: product.matchGapNote,
+      hidden: hasNoMatchedInvestors || isDuplicateText(product.matchGapNote, [product.allocationReason, product.matchReason, product.riskNotes]),
+    },
+  ].filter(item => !item.hidden && hasVisibleValue(item.value))
 
   return (
     <div className={`product-card ${isExpanded ? 'expanded' : ''}`}>
@@ -56,13 +76,13 @@ export default function ProductCard({
             <div className="product-score"><span className="score-number">{product.score}</span><span className="score-unit">分</span></div>
             <button
               type="button"
-              className={`product-investor-toggle ${matchedInvestors.length ? 'has-results' : 'needs-match'} ${isExpanded ? 'is-open' : ''}`}
-              aria-expanded={matchedInvestors.length ? isExpanded : undefined}
+              className={`product-investor-toggle ${hasMatchedInvestors ? 'has-results' : hasNoMatchedInvestors ? 'no-results' : 'needs-match'} ${isExpanded ? 'is-open' : ''}`}
+              aria-expanded={hasMatchedInvestors ? isExpanded : undefined}
               onClick={handleInvestorAction}
-              disabled={isMatchingInvestors || (!matchedInvestors.length && !product.pathMatchResultId)}
+              disabled={isMatchingInvestors || hasNoMatchedInvestors || (!hasMatchedInvestors && !product.pathMatchResultId)}
             >
               <span>{isMatchingInvestors ? '匹配中...' : investorActionLabel}</span>
-              {matchedInvestors.length > 0 && Icons.chevronDown}
+              {hasMatchedInvestors && Icons.chevronDown}
             </button>
           </div>
         </div>
@@ -78,21 +98,25 @@ export default function ProductCard({
             ))}
           </div>
         )}
-        <div className="product-detail-grid">
-          {hasVisibleValue(product.riskNotes) && (
-            <div className="detail-section detail-panel product-advice-panel">
-              <h5>产品建议</h5>
-              <p>{product.riskNotes}</p>
-            </div>
-          )}
-          {hasVisibleValue(product.matchGapNote) && (
-            <div className="detail-section detail-panel product-advice-panel">
-              <h5>产品建议</h5>
-              <p>{product.matchGapNote}</p>
-            </div>
-          )}
-        </div>
-        {isExpanded && matchedInvestors.length > 0 && (
+        {productDetailItems.length > 0 && (
+          <div className="product-detail-grid">
+            {productDetailItems.map(item => (
+              <div key={item.label} className={`detail-section detail-panel ${item.label === '产品建议' ? 'product-advice-panel' : 'product-explain-panel'}`}>
+                <h5>{item.label}</h5>
+                <p>{item.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {hasNoMatchedInvestors && (
+          <div className="detail-section no-investor-match-panel">
+            <h5>暂未匹配到资金方</h5>
+            {hasVisibleValue(product.noMatchedInvestorReason)
+              ? <p>{product.noMatchedInvestorReason}</p>
+              : <p>该融资产品已完成资金方匹配，当前没有可对接的资金方。</p>}
+          </div>
+        )}
+        {isExpanded && hasMatchedInvestors && (
           <div className="detail-section investor-match-section">
             <div className="investor-section-head">
               <h5>匹配资金方</h5>

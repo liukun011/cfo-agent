@@ -328,6 +328,10 @@ function mapPathMatchResultsToProducts(results = []) {
       const investors = pick(route, 'investors') || []
       const matchedInvestors = investors.filter(isMatchedPathInvestor)
       const noMatchInvestor = investors.find(inv => !isMatchedPathInvestor(inv))
+      const investorMatchAttempted = investors.some(inv => String(pick(inv, 'matchStatus', 'match_status') || '').trim())
+      const noMatchedInvestorReason = pick(route, 'requiredSupplementInvestorType', 'required_supplement_investor_type')
+        || pick(noMatchInvestor, 'requiredSupplementInvestorType', 'required_supplement_investor_type', 'matchRisk', 'match_risk', 'riskAdvice', 'risk_advice', 'policyName', 'policy_name')
+        || ''
       const endpointName = pick(route, 'endpointName', 'endpoint_name') || ''
       const endpointCode = pick(route, 'endpointCode', 'endpoint_code') || ''
       const routeRole = formatRouteRole(pick(route, 'routeRole', 'route_role'))
@@ -355,9 +359,9 @@ function mapPathMatchResultsToProducts(results = []) {
         matchReason: pick(route, 'matchReason', 'match_reason') || '',
         amountCheckNote: pick(route, 'amountCheckNote', 'amount_check_note') || '',
         enhancementNote: pick(route, 'enhancementNote', 'enhancement_note') || '',
-        matchGapNote: pick(route, 'requiredSupplementInvestorType', 'required_supplement_investor_type')
-          || pick(noMatchInvestor, 'requiredSupplementInvestorType', 'required_supplement_investor_type', 'matchRisk', 'match_risk')
-          || '',
+        matchGapNote: noMatchedInvestorReason,
+        investorMatchAttempted,
+        noMatchedInvestorReason,
         matchedInvestors: matchedInvestors.map(inv => mapPathInvestor(inv, route)),
         raw: route,
       }

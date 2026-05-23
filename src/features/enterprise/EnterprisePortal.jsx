@@ -50,15 +50,9 @@ function getInvestorStatusText(status) {
 function hasResolutionInvestorResults(analysis, pathMatchResultId) {
   if (!pathMatchResultId || !Array.isArray(analysis)) return false
   const selectedPath = analysis.find(route => String(route?.id || '') === String(pathMatchResultId))
-  return Array.isArray(selectedPath?.investors) && selectedPath.investors.some(investor => {
-    const status = String(investor?.matchStatus || investor?.match_status || '').trim().toUpperCase()
-    const score = Number.parseInt(investor?.matchScore ?? investor?.match_score ?? 0, 10) || 0
-    const hasInvestor = Boolean(
-      (investor?.investorIdCode || investor?.investor_id_code || investor?.investor_id)
-      && (investor?.investorName || investor?.investor_name),
-    )
-    return hasInvestor && score > 0 && (!status || status === 'MATCHED')
-  })
+  return Array.isArray(selectedPath?.investors) && selectedPath.investors.some(investor =>
+    Boolean(String(investor?.matchStatus || investor?.match_status || '').trim()),
+  )
 }
 
 function getNextActionState({ hasMissingFields, isSupplementChecking, isPlanGenerating, hasGeneratedPlan, canGeneratePlan }) {
