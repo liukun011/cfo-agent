@@ -396,6 +396,21 @@
   padding: 12px 14px;
 }
 
+.enterprise-portal .product-card-body .product-advice-panel {
+  border-color: rgba(20, 184, 166, 0.22);
+  background:
+    linear-gradient(180deg, rgba(240, 253, 250, 0.86), rgba(239, 246, 255, 0.78)),
+    var(--bg-card);
+}
+
+.enterprise-portal .product-card-body .product-advice-panel h5 {
+  color: #0f766e;
+}
+
+.enterprise-portal .product-card-body .product-advice-panel p {
+  color: #24364f;
+}
+
 .enterprise-portal .product-card-body .product-detail-grid {
   gap: 8px;
   margin-bottom: 0;

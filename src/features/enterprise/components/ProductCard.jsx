@@ -80,14 +80,14 @@ export default function ProductCard({
         )}
         <div className="product-detail-grid">
           {hasVisibleValue(product.riskNotes) && (
-            <div className="detail-section detail-panel">
-              <h5>风险点说明</h5>
+            <div className="detail-section detail-panel product-advice-panel">
+              <h5>产品建议</h5>
               <p>{product.riskNotes}</p>
             </div>
           )}
           {hasVisibleValue(product.matchGapNote) && (
-            <div className="detail-section detail-panel">
-              <h5>补充说明</h5>
+            <div className="detail-section detail-panel product-advice-panel">
+              <h5>产品建议</h5>
               <p>{product.matchGapNote}</p>
             </div>
           )}

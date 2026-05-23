@@ -12,6 +12,7 @@ const EMPTY_FORM = {
 
 export default function EnterpriseLeadForm({ initialValues, isSubmitting, onBack, onSubmit }) {
   const [values, setValues] = useState(EMPTY_FORM)
+  const isEditing = Boolean(initialValues?.id)
 
   useEffect(() => {
     setValues({
@@ -97,7 +98,7 @@ export default function EnterpriseLeadForm({ initialValues, isSubmitting, onBack
         <div className="enterprise-lead-actions">
           <button type="button" className="btn-outline" onClick={onBack} disabled={isSubmitting}>返回</button>
           <button type="submit" className="btn-primary" disabled={!canSubmit || isSubmitting}>
-            {Icons.chat} {isSubmitting ? '保存中...' : '保存并开始对话'}
+            {Icons.chat} {isSubmitting ? '保存中...' : isEditing ? '更新并开始对话' : '保存并开始对话'}
           </button>
         </div>
       </form>

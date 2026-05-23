@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store'
 import { updatePathMatchContactViewStatus } from '../../api'
 import { CONTACT_VIEW_STATUS, STATUS_COLORS } from '../../config/appConfig'
-import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveEnterprise, startEnterpriseAnalysis, startEnterpriseInvestorResolution, updateEnterpriseAfterChat, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
+import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveOrUpdateEnterpriseLead, startEnterpriseAnalysis, startEnterpriseInvestorResolution, updateEnterpriseAfterChat, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
 import { loadEnterprisePortalData } from '../../services/portalLoaders'
 import {
   buildEnterprisePayload,
@@ -366,7 +366,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     }
     setIsSubmitting(true)
     try {
-      const savedEnterprise = await saveEnterprise(buildEnterpriseLeadPayload(values), dispatch)
+      const savedEnterprise = await saveOrUpdateEnterpriseLead(buildEnterpriseLeadPayload(values), enterprise, dispatch)
       setEnterprise(savedEnterprise)
       startChatSession()
     } catch (e) {

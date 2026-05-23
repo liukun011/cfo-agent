@@ -19,6 +19,23 @@ export async function saveEnterprise(payload, dispatch) {
   return savedEnterprise
 }
 
+export async function saveOrUpdateEnterpriseLead(payload, enterprise, dispatch) {
+  if (!enterprise?.id) {
+    return saveEnterprise(payload, dispatch)
+  }
+
+  const updatePayload = {
+    ...payload,
+    id: String(enterprise.id),
+    status: 1,
+  }
+  const saved = await updateEnterprise(updatePayload)
+  const savedEnterprise = mapEnterpriseVO({ ...updatePayload, ...saved })
+  dispatch({ type: 'UPSERT_ENTERPRISE_FROM_API', payload: { ...updatePayload, ...saved } })
+
+  return savedEnterprise
+}
+
 export async function updateEnterpriseAfterChat(enterprise, payload, dispatch) {
   const updatePayload = {
     ...payload,

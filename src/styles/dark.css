@@ -63,6 +63,80 @@
   color: #e5e7eb;
 }
 
+[data-theme='dark'] .matching-editor-progress-step {
+  background: transparent;
+  border-color: rgba(71,85,105,0.5);
+}
+
+[data-theme='dark'] .matching-editor-progress {
+  background: rgba(15,23,42,0.52);
+  border-color: rgba(71,85,105,0.48);
+}
+
+[data-theme='dark'] .matching-editor-progress::before {
+  background: rgba(100,116,139,0.36);
+}
+
+[data-theme='dark'] .matching-editor-progress-step.is-done {
+  color: #93c5fd;
+  background: transparent;
+  border-color: rgba(96,165,250,0.34);
+}
+
+[data-theme='dark'] .matching-editor-progress-step em {
+  background: rgba(30,41,59,0.92);
+  border-color: rgba(100,116,139,0.58);
+}
+
+[data-theme='dark'] .matching-editor-progress-step.is-done em {
+  background: #2563eb;
+  border-color: #60a5fa;
+}
+
+[data-theme='dark'] .matching-editor-state.is-active {
+  color: #6ee7b7;
+  background: rgba(16,185,129,0.14);
+}
+
+[data-theme='dark'] .matching-editor-state.is-paused {
+  color: #cbd5e1;
+  background: rgba(148,163,184,0.14);
+}
+
+[data-theme='dark'] .matching-editor-state.is-dirty {
+  color: #fcd34d;
+  background: rgba(245,158,11,0.16);
+}
+
+[data-theme='dark'] .matching-rule-switch-compact input {
+  background: rgba(71,85,105,0.66);
+  border-color: rgba(100,116,139,0.72);
+}
+
+[data-theme='dark'] .matching-rule-switch-compact input::after {
+  background: #e5e7eb;
+}
+
+[data-theme='dark'] .matching-condition-remove,
+[data-theme='dark'] .matching-target-actions button.is-danger {
+  color: #fca5a5;
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(248,113,113,0.28);
+}
+
+[data-theme='dark'] .matching-channel-drawer-backdrop {
+  background: rgba(2,6,23,0.72);
+}
+
+[data-theme='dark'] .matching-channel-panel-footer {
+  border-top-color: rgba(71,85,105,0.52);
+}
+
+[data-theme='dark'] .matching-channel-drawer .matching-channel-panel-head .btn-text {
+  background: rgba(30,41,59,0.76);
+  border-color: rgba(71,85,105,0.58);
+}
+
 [data-theme='dark'] .builder-field-chip {
   background: rgba(15,23,42,0.72);
   border-color: rgba(71,85,105,0.48);
@@ -167,6 +241,21 @@
 [data-theme='dark'] .question-name-display {
   background: rgba(30,41,59,0.64);
   border-color: rgba(71,85,105,0.52);
+}
+
+[data-theme='dark'] .enterprise-portal .product-card-body .product-advice-panel {
+  border-color: rgba(45, 212, 191, 0.28);
+  background:
+    linear-gradient(180deg, rgba(20, 184, 166, 0.12), rgba(59, 130, 246, 0.08)),
+    rgba(15, 23, 42, 0.72);
+}
+
+[data-theme='dark'] .enterprise-portal .product-card-body .product-advice-panel h5 {
+  color: #5eead4;
+}
+
+[data-theme='dark'] .enterprise-portal .product-card-body .product-advice-panel p {
+  color: rgba(226, 232, 240, 0.9);
 }
 
 [data-theme='dark'] .product-title-toggle,

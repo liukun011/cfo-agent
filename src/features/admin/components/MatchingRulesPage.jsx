@@ -224,23 +224,37 @@ export default function MatchingRulesPage({ onSaved, onError }) {
   }
 
   if (mode === 'editor' && activeRule) {
+    const validConditionCount = (activeRule.conditions || []).filter(item => item.field && item.value && questionIds.has(item.field)).length
+    const validTargetCount = (activeRule.targets || []).filter(item => item.code && channelIds.has(item.code)).length
+    const progressSteps = [
+      { label: '基础信息', done: Boolean(activeRule.name?.trim()) },
+      { label: '适用条件', done: validConditionCount > 0 },
+      { label: '方案通道', done: validTargetCount > 0 },
+    ]
+
     return (
       <div className="page-content matching-rules-page">
         <div className="matching-editor-topbar">
-          <button className="btn-outline btn-sm" onClick={closeEditor}>返回</button>
-          <div>
-            <span>正在配置</span>
+          <button className="btn-text btn-sm matching-editor-back" onClick={closeEditor}>返回</button>
+          <div className="matching-editor-title">
+            <span>{activeRule.isNew ? '新增规则' : '编辑规则'}</span>
             <strong>{activeRule.name || '未命名规则'}</strong>
           </div>
+          <span className={`matching-editor-state ${hasDraftChanges ? 'is-dirty' : activeRule.isActive ? 'is-active' : 'is-paused'}`}>
+            {hasDraftChanges ? '未保存' : activeRule.isActive ? '启用中' : '已停用'}
+          </span>
         </div>
 
-        <div className="matching-editor-summary">
-          <div><span>适用条件</span><strong>{activeRule.conditions?.length || 0}</strong></div>
-            <div><span>方案通道</span><strong>{activeRule.targets?.length || 0}</strong></div>
-          <div><span>状态</span><strong>{activeRule.isActive ? '启用' : '停用'}</strong></div>
+        <div className="matching-editor-progress" aria-label="规则配置进度">
+          {progressSteps.map((step, index) => (
+            <div key={step.label} className={`matching-editor-progress-step ${step.done ? 'is-done' : ''}`}>
+              <em>{index + 1}</em>
+              <span>{step.label}</span>
+            </div>
+          ))}
         </div>
 
-        <section className="matching-rule-editor-card">
+        <section className="matching-rule-editor-card matching-rule-basic-card">
           <div className="matching-rule-section-head">
             <div><strong>基础信息</strong><p>设置方案规则名称、状态和适用场景。</p></div>
           </div>
@@ -252,7 +266,7 @@ export default function MatchingRulesPage({ onSaved, onError }) {
             <span>场景描述</span>
             <textarea className="form-input" value={activeRule.description || ''} onChange={event => updateActiveRule({ description: event.target.value })} placeholder="请输入适用场景" rows={4} />
           </label>
-          <label className="matching-rule-switch">
+          <label className="matching-rule-switch matching-rule-switch-compact">
             <div><strong>启用规则</strong><p>停用后暂不参与金融方案推荐。</p></div>
             <input type="checkbox" checked={Boolean(activeRule.isActive)} onChange={event => updateActiveRule({ isActive: event.target.checked })} />
           </label>
@@ -260,28 +274,38 @@ export default function MatchingRulesPage({ onSaved, onError }) {
 
         <section className="matching-rule-editor-card">
           <div className="matching-rule-section-head">
-            <div><strong>适用条件</strong><p>条件之间全部满足，关键词之间任一命中。</p></div>
+            <div><strong>适用条件</strong><p>条件需全部满足，关键词用 / 分隔。</p></div>
           </div>
           <div className="matching-condition-list">
             {(activeRule.conditions || []).map((condition, index) => (
               <div key={index} className="matching-condition-card">
-                <div className="matching-condition-index">条件 {index + 1}</div>
-                <select
-                  className="form-input"
-                  value={condition.field}
-                  onChange={event => {
-                    const question = questions.find(item => item.id === event.target.value)
-                    updateCondition(index, { field: event.target.value, label: question?.label || '' })
-                  }}
-                >
-                  <option value="">选择问题字段</option>
-                  {condition.field && !questionIds.has(condition.field) && (
-                    <option value={condition.field}>{condition.label || condition.field}</option>
-                  )}
-                  {questions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
-                </select>
-                <input className="form-input" value={condition.value || ''} onChange={event => updateCondition(index, { value: event.target.value })} placeholder="关键词用 / 分隔" />
-                <button className="btn-danger btn-sm" onClick={() => removeCondition(index)}>删除</button>
+                <div className="matching-condition-card-head">
+                  <div className="matching-condition-index">条件 {index + 1}</div>
+                  <button className="matching-condition-remove" onClick={() => removeCondition(index)} aria-label="删除条件">删除</button>
+                </div>
+                <div className="matching-condition-fields">
+                  <label>
+                    <span>问题字段</span>
+                    <select
+                      className="form-input"
+                      value={condition.field}
+                      onChange={event => {
+                        const question = questions.find(item => item.id === event.target.value)
+                        updateCondition(index, { field: event.target.value, label: question?.label || '' })
+                      }}
+                    >
+                      <option value="">选择问题字段</option>
+                      {condition.field && !questionIds.has(condition.field) && (
+                        <option value={condition.field}>{condition.label || condition.field}</option>
+                      )}
+                      {questions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    <span>关键词</span>
+                    <input className="form-input" value={condition.value || ''} onChange={event => updateCondition(index, { value: event.target.value })} placeholder="订单垫资 / 绿色通道 / 高风险" />
+                  </label>
+                </div>
               </div>
             ))}
           </div>
@@ -291,7 +315,6 @@ export default function MatchingRulesPage({ onSaved, onError }) {
         <section className="matching-rule-editor-card">
           <div className="matching-rule-section-head">
             <div><strong>方案通道</strong><p>按顺序决定推荐优先级。</p></div>
-            <button className="btn-primary btn-sm" onClick={() => setIsChannelPanelOpen(true)}>添加通道</button>
           </div>
           {(activeRule.targets || []).length > 0 ? (
             <div className="matching-target-list">
@@ -300,61 +323,67 @@ export default function MatchingRulesPage({ onSaved, onError }) {
                   <div className="matching-target-rank">P{index + 1}</div>
                   <div><strong>{target.name}</strong><span>{target.code}</span></div>
                   <div className="matching-target-actions">
-                    <button onClick={() => moveTarget(index, -1)} disabled={index === 0} aria-label="上移通道">上移</button>
-                    <button onClick={() => moveTarget(index, 1)} disabled={index === activeRule.targets.length - 1} aria-label="下移通道">下移</button>
-                    <button onClick={() => removeTarget(index)} aria-label="删除通道">删除</button>
+                    <button onClick={() => moveTarget(index, -1)} disabled={index === 0} aria-label="上移通道">↑</button>
+                    <button onClick={() => moveTarget(index, 1)} disabled={index === activeRule.targets.length - 1} aria-label="下移通道">↓</button>
+                    <button className="is-danger" onClick={() => removeTarget(index)} aria-label="删除通道">删</button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="builder-empty-field">暂无方案通道，请先添加。</div>
+            <div className="builder-empty-field">还未选择方案通道</div>
           )}
+          <button className="btn-outline btn-sm matching-add-row-btn" onClick={() => setIsChannelPanelOpen(true)}>添加通道</button>
         </section>
 
         {isChannelPanelOpen && (
-          <section className="matching-channel-panel">
-            <div className="matching-channel-panel-head">
-              <div>
-            <strong>添加方案通道</strong>
-                <p>已选择 {activeRule.targets?.length || 0} 个，可连续添加。</p>
-              </div>
-              <button className="btn-primary btn-sm" onClick={() => setIsChannelPanelOpen(false)}>完成</button>
-            </div>
-            <input
-              className="form-input matching-channel-search"
-              value={channelSearch}
-              onChange={event => setChannelSearch(event.target.value)}
-              placeholder="搜索通道名称"
-            />
-            <div className="matching-node-categories">
-              {filteredFundingSources.map(category => (
-                <div key={category.id} className="matching-node-category">
-                  <button className="matching-node-category-head" onClick={() => setOpenCategories(prev => ({ ...prev, [category.id]: !prev[category.id] }))}>
-                    <span>{category.name}</span>
-                    <em>{category.children?.length || 0}</em>
-                    <i className={openCategories[category.id] ? 'is-open' : ''}>{Icons.chevronDown}</i>
-                  </button>
-                  {openCategories[category.id] && (
-                    <div className="matching-node-grid">
-                      {(category.children || []).map(item => {
-                        const selected = isTargetSelected(item.code)
-                        return (
-                          <button key={item.code} className={selected ? 'is-selected' : ''} onClick={() => addTarget(item)} disabled={selected}>
-                            <span>{item.name}</span>
-                            <small>{selected ? '已添加' : '添加'}</small>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
+          <div className="matching-channel-drawer-backdrop" onClick={() => setIsChannelPanelOpen(false)}>
+            <section className="matching-channel-panel matching-channel-drawer" onClick={event => event.stopPropagation()}>
+              <div className="matching-channel-panel-head">
+                <div>
+                  <strong>选择方案通道</strong>
+                  <p>{activeRule.targets?.length ? `已选择 ${activeRule.targets.length} 个，可连续添加` : '选择后将按优先级推送'}</p>
                 </div>
-              ))}
-              {filteredFundingSources.length === 0 && (
-                <div className="builder-empty-field">没有找到可添加的方案通道。</div>
-              )}
-            </div>
-          </section>
+                <button className="btn-text btn-sm" onClick={() => setIsChannelPanelOpen(false)}>关闭</button>
+              </div>
+              <input
+                className="form-input matching-channel-search"
+                value={channelSearch}
+                onChange={event => setChannelSearch(event.target.value)}
+                placeholder="搜索通道名称"
+              />
+              <div className="matching-node-categories">
+                {filteredFundingSources.map(category => (
+                  <div key={category.id} className="matching-node-category">
+                    <button className="matching-node-category-head" onClick={() => setOpenCategories(prev => ({ ...prev, [category.id]: !prev[category.id] }))}>
+                      <span>{category.name}</span>
+                      <em>{category.children?.length || 0}</em>
+                      <i className={openCategories[category.id] ? 'is-open' : ''}>{Icons.chevronDown}</i>
+                    </button>
+                    {openCategories[category.id] && (
+                      <div className="matching-node-grid">
+                        {(category.children || []).map(item => {
+                          const selected = isTargetSelected(item.code)
+                          return (
+                            <button key={item.code} className={selected ? 'is-selected' : ''} onClick={() => addTarget(item)} disabled={selected}>
+                              <span>{item.name}</span>
+                              <small>{selected ? '已添加' : '添加'}</small>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {filteredFundingSources.length === 0 && (
+                  <div className="builder-empty-field">没有找到可添加的方案通道。</div>
+                )}
+              </div>
+              <div className="matching-channel-panel-footer">
+                <button className="btn-primary btn-sm" onClick={() => setIsChannelPanelOpen(false)}>完成</button>
+              </div>
+            </section>
+          </div>
         )}
 
         <div className="matching-editor-sticky-actions">
