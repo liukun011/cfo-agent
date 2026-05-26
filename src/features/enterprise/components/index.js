@@ -1,5 +1,6 @@
 export { default as ChatDialog } from './ChatDialog'
 export { default as EnterpriseInfoSection } from './EnterpriseInfoSection'
+export { default as EnterpriseEditForm } from './EnterpriseEditForm'
 export { default as EnterpriseLeadForm } from './EnterpriseLeadForm'
 export { CollectedHomeHero, IdleHomeHero } from './EnterpriseHeroes'
 export { default as GenerationStatus } from './GenerationStatus'

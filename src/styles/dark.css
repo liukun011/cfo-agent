@@ -2,7 +2,8 @@
 
 [data-theme='dark'] .form-builder-hero,
 [data-theme='dark'] .tag-form-head,
-[data-theme='dark'] .matching-rules-hero {
+[data-theme='dark'] .matching-rules-hero,
+[data-theme='dark'] .enterprise-edit-header {
   background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(30,41,59,0.9));
   border-color: rgba(71,85,105,0.58);
   box-shadow: 0 20px 48px rgba(0,0,0,0.28);
@@ -24,7 +25,9 @@
 [data-theme='dark'] .matching-channel-panel,
 [data-theme='dark'] .matching-editor-summary > div,
 [data-theme='dark'] .matching-editor-sticky-actions,
-[data-theme='dark'] .matching-editor-topbar {
+[data-theme='dark'] .matching-editor-topbar,
+[data-theme='dark'] .enterprise-edit-card,
+[data-theme='dark'] .enterprise-edit-actions {
   background: rgba(15,23,42,0.86);
   border-color: rgba(71,85,105,0.58);
   box-shadow: 0 18px 42px rgba(0,0,0,0.24);
@@ -46,9 +49,18 @@
 [data-theme='dark'] .matching-node-category,
 [data-theme='dark'] .matching-rule-preview-lines > div,
 [data-theme='dark'] .matching-node-grid button,
-[data-theme='dark'] .matching-target-actions button {
+[data-theme='dark'] .matching-target-actions button,
+[data-theme='dark'] .enterprise-edit-back,
+[data-theme='dark'] .enterprise-edit-summary > div,
+[data-theme='dark'] .enterprise-edit-extended-field {
   background: rgba(30,41,59,0.72);
   border-color: rgba(71,85,105,0.52);
+}
+
+[data-theme='dark'] .enterprise-edit-card {
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.92), rgba(30,41,59,0.78)),
+    rgba(15,23,42,0.86);
 }
 
 [data-theme='dark'] .matching-channel-panel {

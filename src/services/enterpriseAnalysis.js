@@ -36,6 +36,47 @@ export async function saveOrUpdateEnterpriseLead(payload, enterprise, dispatch) 
   return savedEnterprise
 }
 
+export async function updateEnterpriseProfile(enterprise, values, dispatch) {
+  const extendedInfo = Array.isArray(values.extendedInfo)
+    ? values.extendedInfo.map((field, index) => ({
+        id: field.id || field.label || `extended_${index + 1}`,
+        label: field.label || field.id || `采集项 ${index + 1}`,
+        value: String(field.value || '').trim(),
+        required: Boolean(field.required),
+        sort: field.sort ?? index + 1,
+        hint: field.hint || '',
+      }))
+    : (enterprise.extendedInfo || [])
+
+  const updatePayload = {
+    id: String(enterprise.id),
+    companyName: String(values.companyName || '').trim(),
+    industry: String(values.industry || '').trim(),
+    contactPerson: String(values.contactPerson || '').trim(),
+    contactPhone: String(values.contactPhone || '').trim(),
+    revenueMin: String(enterprise.revenueMin || ''),
+    revenueMax: String(enterprise.revenueMax || ''),
+    financingMin: String(values.financingMin || ''),
+    financingMax: String(values.financingMax || ''),
+    financingPurpose: enterprise.financingPurpose,
+    coreProblems: enterprise.coreProblems,
+    assetStatus: enterprise.assetStatus,
+    status: 1,
+    extendedInfo,
+    aiTags: Object.entries(enterprise.aiTags || {}).map(([label, value], index) => ({
+      id: label,
+      label,
+      value,
+      sort: index + 1,
+    })),
+  }
+  const saved = await updateEnterprise(updatePayload)
+  const savedEnterprise = mapEnterpriseVO({ ...enterprise, ...updatePayload, ...saved })
+  dispatch({ type: 'UPSERT_ENTERPRISE_FROM_API', payload: { ...enterprise, ...updatePayload, ...saved } })
+
+  return savedEnterprise
+}
+
 export async function updateEnterpriseAfterChat(enterprise, payload, dispatch) {
   const updatePayload = {
     ...payload,

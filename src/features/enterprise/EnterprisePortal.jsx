@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../../store'
 import { updatePathMatchContactViewStatus } from '../../api'
 import { CONTACT_VIEW_STATUS, STATUS_COLORS } from '../../config/appConfig'
-import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveOrUpdateEnterpriseLead, startEnterpriseAnalysis, startEnterpriseInvestorResolution, updateEnterpriseAfterChat, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
+import { refreshEnterpriseAnalysis, refreshEnterpriseDetail, saveOrUpdateEnterpriseLead, startEnterpriseAnalysis, startEnterpriseInvestorResolution, updateEnterpriseAfterChat, updateEnterpriseProfile, waitForEnterpriseDetection } from '../../services/enterpriseAnalysis'
 import { loadEnterprisePortalData } from '../../services/portalLoaders'
 import {
   buildEnterprisePayload,
@@ -23,6 +23,7 @@ import Toast from '../../shared/components/Toast'
 import {
   ChatDialog,
   CollectedHomeHero,
+  EnterpriseEditForm,
   EnterpriseLeadForm,
   EnterpriseInfoSection,
   GenerationStatus,
@@ -330,6 +331,11 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     setPhase('leadForm')
   }
 
+  const openEditForm = () => {
+    if (isBusy || !enterprise?.id) return
+    setPhase('editing')
+  }
+
   const startChatSession = useCallback(() => {
     if (questions.length === 0) {
       showToast('对话题库还没有加载到，请稍后再试', 'error')
@@ -366,6 +372,22 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     } catch (e) {
       console.log('企业基础信息保存失败', e)
       showToast('基础信息保存失败，请稍后重试', 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditSubmit = async values => {
+    if (isSubmitting || !enterprise?.id) return
+    setIsSubmitting(true)
+    try {
+      const savedEnterprise = await updateEnterpriseProfile(enterprise, values, dispatch)
+      setEnterprise(savedEnterprise)
+      setPhase('collected')
+      showToast('企业资料已保存', 'success')
+    } catch (e) {
+      console.log('企业资料更新失败', e)
+      showToast('企业资料保存失败，请稍后重试', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -601,6 +623,15 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
     />
   )
 
+  const renderEditForm = () => (
+    <EnterpriseEditForm
+      enterprise={enterprise}
+      isSubmitting={isSubmitting}
+      onBack={() => setPhase('collected')}
+      onSubmit={handleEditSubmit}
+    />
+  )
+
   const renderCollectedHome = () => (
     <div className="page-content">
       <CollectedHomeHero
@@ -617,7 +648,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
         extendedEnterpriseFields={extendedEnterpriseFields}
         isBusy={isBusy}
         renderEnterpriseFieldValue={renderEnterpriseFieldValue}
-        onRestartChat={openLeadForm}
+        onEdit={openEditForm}
       />
 
       <section className="section panel-section" ref={generationSectionRef}>
@@ -723,6 +754,7 @@ export default function EnterprisePortal({ onLogout, theme, setTheme }) {
       <main className="main-content">
         {phase === 'idle' && renderIdleHome()}
         {phase === 'leadForm' && renderLeadForm()}
+        {phase === 'editing' && enterprise && renderEditForm()}
         {phase === 'collected' && enterprise && renderCollectedHome()}
       </main>
 
